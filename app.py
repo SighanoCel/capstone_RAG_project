@@ -23,8 +23,10 @@ load_dotenv()
 if "OPENAI_API_KEY" in st.secrets:
     os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
-st.set_page_config(page_title="Capstone RAG", page_icon="📄", layout="centered")
-st.title("📄 Capstone RAG assistant")
+st.set_page_config(
+    page_title="RBS Group Capstone Assistant", page_icon="📄", layout="centered"
+)
+st.title("📄 RBS Group Capstone Assistant")
 st.caption("Ask questions about the Capstone Final Report.")
 
 if not os.getenv("OPENAI_API_KEY"):
