@@ -1,0 +1,10 @@
+# Deployment requirements for the Streamlit RAG app (kept slim on purpose:
+# heavy dev-only deps like torch/sentence-transformers/umap are NOT needed
+# at runtime and would slow down / break the Streamlit Cloud build).
+streamlit
+langchain
+langchain-openai
+langchain-community
+langchain-chroma
+pymupdf
+python-dotenv

@@ -1,0 +1,23 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Secrets — never commit these
+.env
+.env2
+.env.*
+.streamlit/secrets.toml
+*_key.txt
+*.key
+Claude_console_key.txt
+
+# Local vector store (rebuilt at runtime)
+vector_store/
+.chroma/
