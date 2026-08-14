@@ -9,3 +9,6 @@ langchain-chroma
 pymupdf
 python-dotenv
 catboost
+numpy
+pandas
+scikit-learn
