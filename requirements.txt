@@ -8,3 +8,4 @@ langchain-community
 langchain-chroma
 pymupdf
 python-dotenv
+catboost
