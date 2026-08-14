@@ -6,14 +6,17 @@ from the environment (loaded from .env locally, or from Streamlit secrets in
 the cloud).
 """
 
+from operator import itemgetter
 from pathlib import Path
 
 from langchain_chroma import Chroma
+from langchain_core.chat_history import BaseChatMessageHistory, InMemoryChatMessageHistory
 from langchain_core.documents import Document
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 # Works both when notebooks/src is on sys.path (Streamlit app) and when the
@@ -203,3 +206,94 @@ def build_conversational_rag(
     """Convenience: build retriever + conversational chain in one call."""
     retriever = build_retriever(pdf_path=pdf_path, k=k)
     return build_conversational_chain(retriever, model=model)
+
+
+# ---------------------------------------------------------------------------
+# Memory RAG — faithful to Capstone_project_LCEL_Memory.ipynb
+# ---------------------------------------------------------------------------
+# Differences from build_conversational_rag above (kept on purpose to match the
+# notebook served by app_rbs2025.py):
+#   * persistent Chroma store (collection "capstone_project_RAG"), retriever k=4
+#   * no query-rewrite step — retrieves on the raw question; memory lives in the
+#     prompt's history placeholder
+#   * memory managed by RunnableWithMessageHistory + a per-session store
+
+
+def _return_only_text(documents: list[Document]) -> str:
+    """Notebook's context formatter: join chunk texts with a separator."""
+    return "\n\n...\n\n".join(doc.page_content for doc in documents)
+
+
+def build_memory_retriever(
+    pdf_path: str | None = None,
+    k: int = 4,
+    persist_directory: str = "Chroma_capstone_store",
+    collection_name: str = "capstone_project_RAG",
+):
+    """Persistent Chroma retriever, as in the notebook.
+
+    Idempotent on purpose: only embeds the corpus when the collection is empty,
+    so a warm restart (existing store on disk) does not duplicate vectors — the
+    bug that left the notebook's store with 3x the chunks (228 = 76 x 3).
+    """
+    chunks = load_chunks(pdf_path)
+    for c in chunks:
+        c.metadata["source"] = "Capstone_FinalReport.pdf"
+
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    store = Chroma(
+        collection_name=collection_name,
+        embedding_function=embeddings,
+        persist_directory=persist_directory,
+    )
+    if store._collection.count() == 0:
+        store.add_documents(chunks)
+    return store.as_retriever(search_kwargs={"k": k})
+
+
+def build_memory_chain(retriever, model: str = "gpt-4o-mini"):
+    """The notebook's LCEL chain: retrieve on the raw question, answer with history."""
+    llm = ChatOpenAI(model=model)
+    parser = StrOutputParser()
+    format_runnable = RunnableLambda(_return_only_text)
+
+    return (
+        {
+            "question": itemgetter("question"),
+            "context": itemgetter("question") | retriever | format_runnable,
+            "history": itemgetter("history"),
+        }
+        | CONVERSATIONAL_PROMPT  # the Clara prompt_conv (same wording as the notebook)
+        | llm
+        | parser
+    )
+
+
+def build_memory_rag(
+    pdf_path: str | None = None, k: int = 4, model: str = "gpt-4o-mini"
+):
+    """Notebook's conversational-memory RAG wrapped in RunnableWithMessageHistory.
+
+    Invoke with ``{"question": ...}`` and a session id, e.g.::
+
+        rag.invoke({"question": q}, config={"configurable": {"session_id": sid}})
+
+    Each session id gets its own in-memory chat history, held in the closure
+    below (lives as long as the returned object — cache it once per process).
+    """
+    retriever = build_memory_retriever(pdf_path=pdf_path, k=k)
+    chain = build_memory_chain(retriever, model=model)
+
+    store: dict[str, BaseChatMessageHistory] = {}
+
+    def get_session_history(session_id: str) -> BaseChatMessageHistory:
+        if session_id not in store:
+            store[session_id] = InMemoryChatMessageHistory()
+        return store[session_id]
+
+    return RunnableWithMessageHistory(
+        chain,
+        get_session_history,
+        input_messages_key="question",
+        history_messages_key="history",
+    )
