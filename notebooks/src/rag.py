@@ -135,17 +135,17 @@ CONTEXTUALIZE_PROMPT = ChatPromptTemplate.from_messages(
     ]
 )
 
-# Answer prompt: same instructions as PROMPT above, but message-based so it can
-# carry the prior turns alongside the retrieved context.
+# Answer prompt: your exact ChatPromptTemplate wording from the notebook, but
+# message-based so it can carry the prior turns alongside the retrieved context.
 CONVERSATIONAL_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
             "You are a technical assistant for our data analytics team.\n"
-            "Answer the question focusing on the context below.\n"
-            'If there is no answer in the context, just say: "there is no answer"\n'
-            "Be precise and very concise.\n\n"
-            "CONTEXT:\n{context}",
+            "Answer the question below focusing on the context below.\n"
+            'If there is no answer in the context, just say: "there is no answer"\n\n'
+            "CONTEXT:\n{context}\n\n"
+            "Be precise and very concise.",
         ),
         MessagesPlaceholder("chat_history"),
         ("human", "{question}"),
