@@ -21,3 +21,5 @@ Claude_console_key.txt
 # Local vector store (rebuilt at runtime)
 vector_store/
 .chroma/
+Chroma_capstone_store/
+notebooks/Chroma_capstone_store/
