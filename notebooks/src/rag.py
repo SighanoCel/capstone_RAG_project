@@ -116,8 +116,8 @@ def build_rag(pdf_path: str | None = None, k: int = 3, model: str = "gpt-4o-mini
 # Conversational RAG (with chat history / memory)
 # ---------------------------------------------------------------------------
 # The chain itself stays stateless: history is passed in on every invoke under
-# the "chat_history" key. The caller (app.py) owns the conversation state, so
-# the same cached chain can serve every turn and every user.
+# the "history" key. The caller (app.py) owns the conversation state, so the
+# same cached chain can serve every turn and every user.
 
 # Rewrites a follow-up question into a standalone one so the retriever gets a
 # self-contained query (e.g. "and its revenue?" -> "What is RBS Group's revenue?").
@@ -130,25 +130,29 @@ CONTEXTUALIZE_PROMPT = ChatPromptTemplate.from_messages(
             "understandable without the chat history. Do NOT answer it — only "
             "reformulate if needed, otherwise return it unchanged.",
         ),
-        MessagesPlaceholder("chat_history"),
+        MessagesPlaceholder("history"),
         ("human", "{question}"),
     ]
 )
 
-# Answer prompt: your exact ChatPromptTemplate wording from the notebook, but
-# message-based so it can carry the prior turns alongside the retrieved context.
+# Answer prompt — Manuela, the RBS Capstone Report assistant. Greets back with
+# her name, answers in the human's language, and stays on the report.
 CONVERSATIONAL_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            "You are a technical assistant for our data analytics team.\n"
-            "Answer the question below focusing on the context below.\n"
-            'If there is no answer in the context, just say: "there is no answer"\n\n'
-            "CONTEXT:\n{context}\n\n"
-            "Be precise and very concise.",
+            "You are an expert assistant who analyzes the RBS Capstone Project Report."
+            "Your name is Manuela."
+            "Answer questions based on the provided context in the language used by the human"
+            "If the human greats you, You can also great him and tell him what is your name"
+            "But you have to avoid any other conversation with him different from the provided concept",
         ),
-        MessagesPlaceholder("chat_history"),
-        ("human", "{question}"),
+        MessagesPlaceholder("history"),
+        (
+            "user",
+            "These are the significant excerpts from the report: \n\n{context}\n\n"
+            "My Question:{question}",
+        ),
     ]
 )
 
@@ -165,9 +169,9 @@ def to_lc_messages(messages: list[dict]) -> list[BaseMessage]:
 
 
 def build_conversational_chain(retriever, model: str = "gpt-4o-mini"):
-    """LCEL RAG chain that takes {"question", "chat_history"} and remembers context.
+    """LCEL RAG chain that takes {"question", "history"} and remembers context.
 
-    chat_history is a list of langchain_core messages (see ``to_lc_messages``)
+    history is a list of langchain_core messages (see ``to_lc_messages``)
     covering the turns *before* the current question.
     """
     llm = ChatOpenAI(model=model)
@@ -177,7 +181,7 @@ def build_conversational_chain(retriever, model: str = "gpt-4o-mini"):
 
     def standalone_question(x: dict) -> str:
         # Only spend an LLM call rewriting when there is history to resolve.
-        if x.get("chat_history"):
+        if x.get("history"):
             return contextualize.invoke(x)
         return x["question"]
 

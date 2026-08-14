@@ -69,7 +69,7 @@ for msg in st.session_state.messages:
 if question := st.chat_input("Ask about the report…"):
     # History is everything said *before* this turn; the chain rewrites the
     # follow-up into a standalone query using it, then answers with it in view.
-    chat_history = to_lc_messages(st.session_state.messages)
+    history = to_lc_messages(st.session_state.messages)
 
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
@@ -79,7 +79,7 @@ if question := st.chat_input("Ask about the report…"):
         with st.spinner("Thinking…"):
             try:
                 answer = chain.invoke(
-                    {"question": question, "chat_history": chat_history}
+                    {"question": question, "history": history}
                 )
             except Exception as exc:
                 answer = f"⚠️ Error: {exc}"
