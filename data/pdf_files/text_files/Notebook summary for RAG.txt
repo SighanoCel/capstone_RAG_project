@@ -1,0 +1,1344 @@
+
+
+project 1- Bank Customer Churn Prediction with Deep Learning
+
+English project summary
+1. Project Overview
+This project predicts whether a bank customer is likely to leave the bank (customer churn) using a TensorFlow/Keras feed-forward
+neural network. It also converts predicted churn probabilities into a retention-campaign analysis, estimating which probability
+threshold could provide the best financial return under explicit business assumptions.
+Questions addressed
+• Which customer characteristics differ between customers who leave and those who stay?
+• How should data be prepared for a neural network?
+• How well does the model identify churners?
+• Which customers should the bank prioritize for retention outreach?
+• How can the potential return of a retention campaign be estimated?
+2. Dataset and Target
+The notebook uses 10,000 bank-customer records. The original target column Exited is renamed churn: 1 means the customer
+left; 0 means the customer stayed. RowNumber, CustomerId, and Surname are removed before modeling.
+Features include credit score, geography, gender, age, tenure, balance, number of products, credit-card ownership, active-member
+status, estimated salary, satisfaction score, card type, and points earned. The notebook reports no missing values or duplicate rows
+in its checks. Categorical variables are one-hot encoded with pandas.get_dummies(drop_first=True).
+Potential target leakage: Complain has a Pearson correlation of about 0.9957 with churn. The notebook removes it because it may
+reveal the target rather than generalizable churn patterns.
+3. Exploratory Findings
+Feature Stayed (0) Churned (1) Observed difference
+Average age 37.4 years 44.8 years Churned customers older on average
+Average balance 72,742.75 91,109.48 Higher average balance among churners
+Active-member rate 55.5% 36.1% Churners less often active
+Average tenure 5.03 years 4.93 years Small difference
+These are descriptive averages, not proof of causation.
+4. Data Preparation and Neural Network
+• Split: 70% training and 30% test data, random_state=1 and stratified by target (7,000 training rows and 3,000 test rows before
+resampling).
+• Scaling: StandardScaler standardizes model inputs.
+• Class imbalance: SMOTE is applied to training data only. With sampling_strategy=0.4, k_neighbors=2, and random_state=1,
+counts change from 5,573 non-churners and 1,427 churners to 5,573 and 2,229.
+• Architecture: Keras Sequential network with dense layers of 64 and 32 ReLU units, 20% dropout, L2 regularization, and one
+sigmoid output neuron.
+• Training: Adam optimizer, binary cross-entropy loss, recall metric, and 60 epochs.
+• Output: probability between 0 and 1 representing estimated churn risk.
+5. Evaluation Results at Threshold 0.40
+A customer is classified as a predicted churner when the predicted probability is greater than 0.40.
+Metric Stayed (class 0) Churned (class 1) Overall
+Precision 0.90 0.57 —
+Bank Customer Churn Prediction — RAG Knowledge Summary Page 2
+Metric Stayed (class 0) Churned (class 1) Overall
+Recall 0.88 0.63 —
+F1-score 0.89 0.60 —
+Support 2,389 611 3,000
+Accuracy — — 0.83
+Confusion matrix (actual rows: stayed, churned; predicted columns: stayed, churned): [[2101, 288], [226, 385]]. At this threshold,
+385 of 611 actual churners are detected; 226 are missed, and 288 non-churners are incorrectly flagged.
+The notebook also uses a cumulative-gain curve and probability histograms. Lower thresholds often increase recall but can reduce
+precision; threshold choice depends on the cost of missed churners versus unnecessary contacts.
+6. Retention Campaign ROI
+The notebook groups predicted probabilities into 100 bins and estimates the result of contacting every customer whose score is at
+or above each threshold. Assumptions: $3 per customer contact and $40 for each churner successfully retained.
+Estimated return = (actual churners reached × $40) − (customers contacted × $3).
+The break-even churn rate is $3 / $40 = 7.5%. Under these assumptions, contacting an additional group is economically worthwhile
+if its expected churn rate is above 7.5%, provided the assumed benefit is realized.
+The notebook's written report states that a threshold near 0.07 produced an estimated return of about $17,000 on the
+3,000-customer test set. It reports contacting 1,833 customers and reaching 562 of 611 actual churners (recall 0.92, precision
+0.31), compared with about $15,400 from contacting everyone. These are scenario estimates, not guaranteed real-world profits.
+7. Deployment Artifacts
+The model is intended for reuse by a Streamlit application at streamlit_app/bank_churn_app.py. The notebook saves:
+• churn_keras_model.keras: trained neural network.
+• churn_scaler.joblib: fitted StandardScaler.
+• churn_features.json: exact feature order used during training.
+The deployed application must use matching feature encoding and column order and apply the same fitted scaler before prediction.
+The notebook also attempts to save an optional combined joblib bundle.
+8. Important Technical Caveat
+The notebook contains a scaling issue: it calls scaler.fit_transform(X_test) on test data. The correct procedure is to fit the scaler
+on training data only, then use scaler.transform(X_test). Fitting again on the test set gives test features a different scaling basis
+from training. Correct this and rerun predictions, metrics, score bins, and ROI calculations before relying on the results; the values
+may change.
+The ROI analysis assumes a fixed $3 contact cost and $40 benefit per successfully retained churner. It does not explicitly model
+whether an intervention actually prevents churn, so real campaign results require validation.
+9. RAG-Ready Knowledge Facts
+• Goal: binary prediction of bank customer churn; churn=1 means the customer left.
+• Dataset: 10,000 records; 7,000 train and 3,000 test before SMOTE.
+• Complain is excluded because its correlation with churn is about 0.9957 and may indicate target leakage.
+• Categorical variables use one-hot encoding with drop_first=True.
+• SMOTE training counts: 5,573 non-churners and 2,229 churners after resampling.
+• Model: 64- and 32-unit ReLU dense layers, 20% dropout, L2 regularization, sigmoid output, Adam, binary cross-entropy, 60
+epochs.
+• At threshold 0.40: accuracy 0.83, churn precision 0.57, churn recall 0.63.
+• ROI assumptions: $3 per contact, $40 per successfully retained churner, 7.5% break-even rate.
+• Notebook narrative reports threshold about 0.07, return about $17,000, 1,833 contacted, and 562 of 611 churners reached.
+• Deployment files: churn_keras_model.keras, churn_scaler.joblib, churn_features.json
+
+
+
+project 2 - Bank Transaction Fraud Detection – Complete
+Project Documentation
+1. Project overview
+Bank Transaction Fraud Detection project: an end-to-end data science project that detects
+fraudulent bank transactions with machine learning. The notebook covers: data loading and
+exploration, EDA, feature engineering, training a CatBoostClassifier, model evaluation and
+classification threshold optimization, interpretability with SHAP, cost-benefit analysis (ROI) and
+strategic recommendations.
+Objective: build a robust model that identifies fraudulent transactions while optimizing business
+impact and operational efficiency, minimizing the organization's financial losses and limiting false
+positives (which hurt customer experience and trust and raise operating costs).
+Main stages: (1) Data Loading and Initial Exploration; (2) Exploratory Data Analysis; (3) Feature
+Engineering (categorical and time-based features); (4) Model Training with CatBoostClassifier; (5)
+Model Evaluation and Threshold Optimization (precision, recall, false positive rate); (6) Model
+Interpretability with SHAP; (7) Cost-Benefit Analysis and recommendations.
+Key result: final CatBoost model with test AUC ≈ 0.891, recall 0.94 and precision 0.40 at threshold
+0.5. Threshold 0.5 is chosen as the best compromise between fraud detection and false-positive
+cost (simulated net profit ≈ 4.21 million, 86% savings).
+2. Technology stack and libraries
+Bank Transaction Fraud Detection project – environment: Google Colab, Python 3.12. Libraries:
+pandas, numpy, matplotlib, seaborn, scikit-learn (train_test_split, recall_score, precision_score,
+classification_report, confusion_matrix, precision_recall_curve), scipy.stats (chi2_contingency),
+collections.Counter, math, catboost (CatBoostClassifier, version 1.2.10 installed via pip), shap
+(version 0.51.0). The dataset is read from Google Drive (folder "Keaggle datasets
+project/Classification").
+3. The dataset
+Bank Transaction Fraud Detection project – dataset: file Fraud.csv (Kaggle-style source) with
+1,048,574 rows and 11 columns, 88.0+ MB in memory. It comes with a file "Fraud Detection
+Glossary.txt". The records are bank transactions across Indian cities. There are no missing values
+and no duplicates: the dataset appears already cleaned.
+Bank Transaction Fraud Detection – page 2
+Column dictionary (from the glossary): 1) Date: date of the transaction (e.g. 26-May-13). 2)
+nameOrig: user name or account number. 3) amount: money moved in the transaction. 4)
+oldbalanceOrg: how much money the client had before the transaction. 5) newbalanceOrig: how
+much the client has after the transaction. 6) City: city where the transaction happened (e.g.
+"Bengaluru, India"). 7) type: transaction type, one of TRANSFER, CASH_OUT, CASH_IN, DEBIT,
+PAYMENT. 8) Card Type: client's card type: Platinum, Gold, Silver, Signature, Classic, Mass. 9) Exp
+Type: purpose of the expense: Food, Entertainment, Fuel, Bills, Grocery, Travel, Personal_Care,
+Health_Fitness, Home. 10) Gender: Male or Female (M/F). 11) isFraud: target; 0 = no fraud, 1 =
+fraud.
+Data types (df.info): Date, nameOrig, City, type, Card Type, Exp Type and Gender are object
+(text); amount, oldbalanceOrg and newbalanceOrig are float64; isFraud is int64. All columns have
+1,048,574 non-null values.
+First sample rows (all fraudulent, type TRANSFER): 26-May-13, amount 242, oldbalance 302,
+newbalance 60, Ahmedabad, Gold, Food, F, isFraud 1; 26-Jul-12, amount 7081, old 46066, new
+38985, Delhi, Gold, Entertainment, M; 12-Apr-12, amount 16355, old 30355, new 14000, Kolkata,
+Silver, Fuel, F; 28-Jan-12, amount 20820, Lucknow, Gold, Food, F; 16-Apr-14, amount 6071,
+Bengaluru, Gold, Fuel, M; 29-May-14, amount 13450, Bengaluru, Silver, Bills, F; 22-May-13,
+amount 37595, Bengaluru, Signature, Food, F; 05-Mar-12, amount 102705, old 105078.57, new
+2373.57, Chennai, Platinum, Entertainment, M. Dates cover the years 2012–2014.
+Size and class imbalance: total frauds are 175,785 out of 1,048,574 transactions (≈ 16.8%,
+computed from the per-city statistics), so the dataset is moderately imbalanced. There are about
+986 distinct cities. The non-fraud/fraud ratio in the training set is ≈ 4.96.
+4. Data preparation and cleaning
+Bank Transaction Fraud Detection project – data cleaning steps: (a) Check for nulls and duplicates:
+none, the dataset is complete. (b) Drop the column nameOrig because it is judged not
+relevant/useful for the model (account identifier). (c) Convert Date to datetime with format
+'%d-%b-%y' and create the features Day, Month, Year (and Month_name only for the monthly
+analysis). (d) For modeling, Date, Month_name and isFraud are excluded; the features used are:
+amount, oldbalanceOrg, newbalanceOrig, City, type, Card Type, Exp Type, Gender, Day, Month,
+Year.
+5. Correlation and statistical tests on features
+Bank Transaction Fraud Detection project – Pearson correlation (x100) between numeric features
+and isFraud: amount −4.97; newbalanceOrig −11.94; oldbalanceOrg −11.99. No strong
+correlation, so no sign of data leakage; all correlations are negative (lower amounts and balances
+→ more fraud). The purpose of the check is to detect data leakage, i.e. an independent feature too
+strongly correlated with the target, which would produce a biased, overfitted model.
+Bank Transaction Fraud Detection project – Chi-squared test of independence (scipy
+chi2_contingency) between each categorical feature and isFraud, using a contingency table
+(crosstab). Formula: chi² = Σ (Observed − Expected)² / Expected; expected frequency = row total
+× column total / grand total. Notebook results (p-value): CITY 0.09% → "no association" under the
+threshold used; TYPE 0.00% → significant association; CARD TYPE 12.99% → no association; EXP
+TYPE 0.09% → no association; GENDER 59.24% → no association.
+Contingency table Gender vs isFraud: Female: 458,678 non-fraud, 92,504 fraud; Male: 414,111
+non-fraud, 83,281 fraud. Proportions are almost identical (≈16.8% fraud for both genders),
+consistent with the high p-value.
+Bank Transaction Fraud Detection – page 3
+Notebook conclusion: the only categorical feature associated with the target is type (p-value
+0.00%, far below the threshold). A strong association between a feature and the target is good for
+a predictive model; it is not data leakage because the transaction type is a characteristic of the
+transaction itself, known at the time the fraud prediction is needed. Data leakage occurs when a
+model uses information that would not be available in a real prediction scenario.
+Analyst note: in the code the significance threshold is written as p > 0.05/100 (i.e. 0.0005 =
+0.05%), not 0.05. This is why City and Exp Type (p = 0.09%) are labeled "no association",
+whereas with the standard 5% threshold they would be significant. The notebook text mentions
+a threshold of 0.05. Also, with over a million rows even tiny differences produce small p-values:
+statistical significance does not imply practical relevance.
+6. EDA – Average amount and balances by fraud status
+Bank Transaction Fraud Detection project – class means (df.groupby('isFraud').mean): non-fraud
+(0): amount 40,494.25; oldbalanceOrg 1,039,962 (1.04e6); newbalanceOrig 999,467.55. Fraud
+(1): amount 25,780.88; oldbalanceOrg 86,957.50; newbalanceOrig 61,176.62.
+Interpretation: fraudulent transactions have on average lower amounts and occur on accounts
+with much lower balances (before and after) than legitimate ones. Three bar plots (viridis palette)
+confirm the pattern: fraud involves smaller sums and accounts with lower balances. This is a
+strong discriminating signal for the model.
+7. EDA – Transaction type (type)
+Bank Transaction Fraud Detection project – analysis of type: fraud is almost exclusively
+concentrated in two types, TRANSFER and CASH_OUT; practically no fraud in CASH_IN, DEBIT or
+PAYMENT. Non-fraud transactions are present in all types. By overall frequency, the most common
+types are CASH_OUT and PAYMENT, followed by CASH_IN and TRANSFER; DEBIT is the least
+frequent. CASH_IN and PAYMENT are very frequent but almost fraud-free.
+Implication: fraud models or rules must weigh TRANSFER and CASH_OUT heavily (high-risk
+categories, where all fraud is concentrated); investigating DEBIT and PAYMENT would yield very
+few true positives.
+8. EDA – Expense type (Exp Type)
+Bank Transaction Fraud Detection project – analysis of Exp Type (Food, Entertainment, Fuel, Bills,
+Grocery, Travel, Personal_Care, Health_Fitness, Home): the absolute number of frauds per
+category is proportional to how often the category is used (e.g. Food and Fuel have more
+transactions, both legitimate and fraudulent). The fraud/non-fraud ratio is similar across
+categories: no Exp Type is inherently more exposed; the only risk is frequency of use.
+9. EDA – Geographic concentration of fraud (Pareto)
+Bank Transaction Fraud Detection project – city concentration: the notebook computes total
+transactions and frauds per city, sorts by frauds and computes cumulative percentages. Results:
+80% of all frauds are concentrated in about 7.10% of cities (the 80.02% row is the 70th city,
+Jalandhar, with 140,670 cumulative frauds); the top 20% of cities account for about 84.72% of
+frauds. The dataset has 986 cities. The pattern matches the Pareto 80/20 principle (concentration
+curve very steep at first, then flattening).
+Cities with the fewest frauds (bottom of the ranking): Varanasi 3 frauds out of 40 transactions,
+Tirur 5 of 40, Fazilka 6 of 40, Bagaha 6 of 40, Changanassery 6 of 40.
+Bank Transaction Fraud Detection – page 4
+Bank Transaction Fraud Detection project – top 10 cities by number of frauds (city, total
+transactions, frauds, % of all frauds): Bengaluru 143,733 transactions, 24,588 frauds, 13.99%;
+Greater Mumbai 141,376, 24,033, 13.67%; Ahmedabad 141,231, 23,962, 13.63%; Delhi 140,874,
+23,923, 13.61%; Hyderabad 31,360, 4,988, 2.84%; Kolkata 30,920, 4,961, 2.82%; Chennai
+30,960, 4,943, 2.81%; Kanpur 30,560, 4,922, 2.80%; Lucknow 30,360, 4,905, 2.79%; Surat
+29,960, 4,848, 2.76%.
+Notebook observation: cities with the most frauds coincide with those with the most transactions
+(Bengaluru, Greater Mumbai, Ahmedabad, Delhi), and their share of fraud is similar to their share
+of transactions (e.g. Bengaluru ≈14% of both). So the absolute number of frauds is largely
+proportional to volume; the fraud rate must also be examined.
+10. EDA – Fraud rate by city
+Bank Transaction Fraud Detection project – fraud rate (frauds / transactions ×100) for cities with
+above-average volume: Bengaluru 17.11% (143,733 tx, 24,588 frauds); Greater Mumbai 17.00%
+(141,376; 24,033); Delhi 16.98% (140,874; 23,923); Ahmedabad 16.97% (141,231; 23,962); Surat
+16.18% (29,960; 4,848); Lucknow 16.16% (30,360; 4,905); Kanpur 16.11% (30,560; 4,922); Jaipur
+16.07% (30,080; 4,833); Pune 16.06% (29,880; 4,799); Kolkata 16.04% (30,920; 4,961); Chennai
+15.97% (30,960; 4,943); Hyderabad 15.91% (31,360; 4,988).
+Notebook conclusion: the same metropolises (Bengaluru, Greater Mumbai, Delhi, Ahmedabad)
+lead both in number of frauds and in fraud rate, so risk is not driven by volume alone; the
+notebook suggests allocating security resources disproportionately to these areas.
+Analyst note: the rates of the 4 metropolises (≈17.0–17.1%) are only about 1 percentage point
+above the others (≈16%) and close to the overall rate (≈16.8%); the difference is modest, so
+the claim of a "notably" higher rate should be taken with caution.
+11. EDA – Monthly fraud trend
+Bank Transaction Fraud Detection project – statistics per month (month: transactions, frauds,
+fraud rate %): October 91,073, 15,375, 16.88; April 95,531, 16,109, 16.86; March 98,951, 16,686,
+16.86; August 65,375, 11,012, 16.84; November 95,273, 16,036, 16.83; September 63,449,
+10,646, 16.78; December 98,980, 16,596, 16.77; February 90,870, 15,226, 16.76; January 99,206,
+16,608, 16.74; May 98,585, 16,450, 16.69; July 65,274, 10,828, 16.59; June 86,007, 14,213,
+16.53.
+Bubble chart (transaction volume vs monthly fraud rate, bubble size = total frauds), split into
+quadrants by the means. Notebook interpretation: High fraud rate / high volume: October, April,
+March (riskiest in absolute terms). High fraud rate / low volume: August and September
+(concentrated risk, a "fraud season", needing special attention). Low fraud rate / high volume:
+January, May (more contained), February and December (medium rate). Low fraud rate / low
+volume: July and June (lowest-risk periods). Overall there are no dramatic monthly spikes: fraud is
+present all year and scales with volume.
+Analyst note: monthly rates only range from 16.53% to 16.88% (0.35 points), so differences
+between months are very small and probably of little operational relevance.
+12. Outlier treatment
+Bank Transaction Fraud Detection project – outliers: boxplots of amount, oldbalanceOrg and
+newbalanceOrig by fraud status show very different scales between fraud and non-fraud; outliers
+among legitimate transactions are often genuinely very large amounts and balances. Decision: no
+explicit treatment (no winsorization or removal), because CatBoost, a tree-based ensemble, is
+Bank Transaction Fraud Detection – page 5
+robust to outliers; all original data are kept since they may carry useful information.
+13. Modeling – setup
+Bank Transaction Fraud Detection project – modeling: a CatBoostClassifier is used (tree-based
+gradient boosting, handles categorical features natively and suits imbalanced tabular data).
+Train/test split: test_size=0.3, random_state=42 → 70% train (≈734,001 rows) and 30% test
+(314,573 rows; class 0 = 261,971, class 1 = 52,602). Categorical features passed as cat_features:
+City, type, Card Type, Exp Type, Gender. Feature matrix X: amount, oldbalanceOrg,
+newbalanceOrig, City, type, Card Type, Exp Type, Gender, Day, Month, Year.
+Handling class imbalance: the non-fraud/fraud ratio in the training set ≈ 4.96, so the theoretical
+class_weights = [1, 4.96]. The notebook intended to search for the best weight on a grid [1, 5, 10,
+20, 30] with parameters iterations=300, learning_rate=0.03, depth=6, l2_leaf_reg=5,
+random_strength=1, bagging_temperature=1, eval_metric AUC, early_stopping_rounds=50,
+measuring recall and precision for each weight. That cell, however, ended with a CatBoostError
+and produced no results. A comment in the final model code mentions a weight of 6 "based on
+previous experiments", but the final model uses 4.5.
+Bank Transaction Fraud Detection project – final model: CatBoostClassifier(iterations=700,
+learning_rate=0.05, depth=4, loss_function='Logloss', eval_metric='AUC', class_weights=[1, 4.5],
+l2_leaf_reg=3, random_strength=1, bagging_temperature=1). Fitted with cat_features,
+eval_set=(X_test, y_test), early_stopping_rounds=20. Training took ≈ 9 min 48 s on Colab.
+Test AUC during training: iteration 0: 0.8681; 100: 0.8876; 200: 0.8899; 300: 0.8908; 400: 0.8911;
+500: 0.8911; 600: 0.8913; 699: 0.8914. Best test AUC = 0.89138 at iteration 698; the model is
+shrunk to the first 699 iterations.
+Analyst note: the test set is also used as the eval_set for early stopping and for choosing the
+threshold; without a separate validation set the test metrics are slightly optimistic. An AUC ≈
+0.89 indicates good but not excellent discriminative power.
+14. Model evaluation (threshold 0.5 / predict)
+Bank Transaction Fraud Detection project – classification report of the final model on the test set
+(314,573 rows): class 0 (non-fraud): precision 0.98, recall 0.71, f1 0.83, support 261,971. Class 1
+(fraud): precision 0.40, recall 0.94, f1 0.56, support 52,602. Accuracy 0.75; macro avg precision
+0.69, recall 0.82, f1 0.69; weighted avg precision 0.88, recall 0.75, f1 0.78.
+Confusion matrix (threshold 0.5): True Negative = 187,135; False Positive = 74,836; False
+Negative = 3,395; True Positive = 49,207. Fraud recall = 0.94, fraud precision = 0.40. In short:
+the model catches 94% of frauds but only 40% of alerts are real frauds; many legitimate
+transactions are flagged (FPR 28.57%).
+15. Classification threshold optimization
+Bank Transaction Fraud Detection project – results per threshold on predicted probabilities
+(y_proba > threshold), with matrix [[TN, FP],[FN, TP]]: Threshold 0.3: [[176,926, 85,045],[1,690,
+50,912]], recall 0.97, precision 0.37, FPR 32.46%. Threshold 0.4: [[181,493, 80,478],[2,279,
+50,323]], recall 0.96, precision 0.38, FPR 30.72%. Threshold 0.5: [[187,135, 74,836],[3,395,
+49,207]], recall 0.94, precision 0.40, FPR 28.57%. Threshold 0.6: [[195,800, 66,171],[5,823,
+46,779]], recall 0.89, precision 0.41, FPR 25.26%. Threshold 0.7: [[230,665, 31,306],[19,911,
+32,691]], recall 0.62, precision 0.51, FPR 11.95%.
+Bank Transaction Fraud Detection – page 6
+Discussion: threshold 0.3 has the highest recall but too many false positives; 0.4 is similar; 0.5 is
+the standard value and gives a good balance; 0.6 loses significant recall (0.89); 0.7 makes recall
+collapse (0.62) despite a much lower FPR (11.95%). Recommendation: threshold 0.5 (recall 0.94,
+FPR 28.57%); the choice depends on the trade-off between false-positive cost (investigation time,
+customer inconvenience) and false-negative cost (losses from undetected fraud).
+Precision-Recall curve: useful with imbalanced data because it focuses on the positive class.
+Precision = share of alerts that are correct; recall = share of real frauds detected. The baseline
+(red dashed line) is the fraud proportion in the test set (≈16.7%). The green marker is the
+threshold closest to 0.5. As recall increases precision decreases; a curve above the baseline
+indicates a model better than chance and supports the choice of 0.5.
+16. Interpretability with SHAP
+Bank Transaction Fraud Detection project – SHAP (SHapley Additive exPlanations):
+shap.TreeExplainer(model=final_model, feature_perturbation='tree_path_dependent',
+model_output='raw'), values computed on X_test; summary_plot. It is used to identify the most
+influential features, understand the direction of impact, build trust and transparency, and
+formulate actionable strategies. In the summary plot: Y-axis = features ordered by importance;
+X-axis = SHAP value (positive → raises fraud probability, negative → lowers it); color = feature
+value (red high, blue low).
+Interpretation results: the most important features are amount, oldbalanceOrg, newbalanceOrig,
+type and City (in the conclusions: type, City, oldbalanceOrg, amount, newbalanceOrig). Low
+amounts and low balances push toward fraud; high balances (red dots) push toward legitimate
+transactions, in line with the EDA. TRANSFER and CASH_OUT contribute strongly to a fraud
+classification. City may contribute through subtle patterns tied to geographic concentration.
+Analyst note: the notebook's "Key Insights" paragraph is written as "based on typical fraud
+detection patterns and assuming relevant features emerge as important", with phrases like "are
+also expected" and "will likely confirm": it is not a verified reading of the SHAP plot. The SHAP
+chart itself is not included in the extracted text.
+17. Strategic recommendations
+Bank Transaction Fraud Detection project – actionable recommendations: (1) Enhanced real-time
+monitoring and anomaly detection on amount, oldbalanceOrg, newbalanceOrig and type, flagging
+unusual combinations. (2) Targeted interventions for TRANSFER and CASH_OUT: specific
+protocols, additional verification steps, velocity checks. (3) Dynamic risk scoring based on SHAP
+insights: e.g. a TRANSFER with low oldbalanceOrg automatically gets a higher risk score. (4)
+Geospatial fraud intelligence: collaborate with law enforcement or build regional fraud intelligence
+networks for the concentrated cities (Bengaluru, Greater Mumbai, Delhi), with awareness
+campaigns and improved security infrastructure. (5) Explainability in investigations: use SHAP to
+show investigators why a transaction was flagged.
+Expected benefit: better detection, lower financial losses and optimized resource allocation while
+maintaining customer trust.
+18. Cost-benefit analysis (ROI)
+Bank Transaction Fraud Detection project – financial assumptions (in dollars in the code):
+Average_fraud_amount = 100; cost per false positive = 5; gain per fraud caught (true positive) =
+100; loss per missed fraud (false negative) = 100. Formulas: profit = TP×100 − FN×100 − FP×5;
+loss_no_model = (TP+FN)×100; loss_with_model = FN×100 + FP×5; savings = loss_no_model −
+Bank Transaction Fraud Detection – page 7
+loss_with_model; percentage savings = savings / loss_no_model.
+Results per threshold (profit; savings; false positive cost; savings %): Threshold 0.3: profit
+4,496,975; savings 4,665,975; FP cost 425,225; 89%. Threshold 0.4: profit 4,402,010; savings
+4,629,910; FP cost 402,390; 88%. Threshold 0.5: profit 4,207,020; savings 4,546,520; FP cost
+374,180; 86%. Threshold 0.6: profit 3,764,745; savings 4,347,045; FP cost 330,855; 83%.
+Threshold 0.7: profit 1,121,470; savings 3,112,570; FP cost 156,530; 59%.
+Notebook interpretation: threshold 0.3 maximizes profit and savings (≈4.5M; 89%) but has the
+highest FPR (32.46%) and a high FP cost; 0.4 is similar; 0.5 offers the best compromise (recall
+0.94, 86% savings, FP cost ≈374k); 0.6 cuts FP cost by ≈43k but loses ≈442k of profit; 0.7 makes
+recall (0.62) and profit (≈1.1M) collapse. Recommendation: threshold 0.5, which maximizes net
+value without overburdening verification teams.
+Analyst note: numerically, threshold 0.3 has a higher net profit than 0.5 (4.50M vs 4.21M), so
+choosing 0.5 rests on an operational compromise (verification workload, customer experience)
+rather than on maximum absolute profit, as the notebook itself acknowledges. The text uses the
+€ symbol while the code assumes dollars; the figures are simulations based on assumptions, not
+real data. A cost of 5 per FP is low relative to 74,836 FPs at threshold 0.5.
+19. Final conclusions of the project
+Bank Transaction Fraud Detection project – conclusions: (1) EDA: lower amounts and lower
+balances are strong fraud indicators; TRANSFER and CASH_OUT are almost exclusively associated
+with fraud; fraud is highly geographically concentrated (a few cities hold most fraud, often
+because of high volume but with slightly higher rates); the monthly trend shows absolute numbers
+scale with volume, with August and September showing a higher rate despite lower volume;
+CatBoost is robust so no outlier treatment is needed. (2) Model: CatBoostClassifier with custom
+class weights, recall 0.94 and precision 0.40 at threshold 0.5. (3) Threshold: 0.5 chosen via
+cost-benefit analysis and the precision-recall curve. (4) SHAP: type, City, oldbalanceOrg, amount,
+newbalanceOrig are the main drivers; low amounts and balances raise fraud probability, in line
+with the EDA.
+The project delivers a performant and interpretable model; combining EDA, robust modeling and
+SHAP it provides actionable recommendations and confirms that threshold 0.5 gives the best ROI
+balance, focusing monitoring on high-risk transaction types, amounts and geographic areas and
+integrating model explanations into investigation workflows.
+20. Limitations and possible improvements
+Bank Transaction Fraud Detection project – limitations found in the notebook: the test set is also
+used for early stopping and threshold selection; the class-weight search was interrupted by an
+error; low precision (0.40) with many false positives (74,836 at threshold 0.5); AUC ≈ 0.89; the
+Chi-squared threshold is coded as 0.0005 instead of 0.05; business costs are only simulated; Date
+is not used as a time series (only Day/Month/Year); nameOrig is dropped without building
+per-customer behavior features (frequency, velocity). Possible improvements: separate validation
+set or cross-validation, hyperparameter tuning, customer-history features, probability calibration,
+thresholds differentiated by type/city, real costs for FP and FN.
+
+
+
+project 3-  Car Performance Prediction - Ridge Regression and SHAP
+Interpretability
+
+1. Project summary
+The Car Performance Prediction project, by Celestin Signe Sighano, predicts the acceleration of a car (time
+in seconds to reach a given speed, as recorded in the classic Auto MPG dataset) from two characteristics of
+the vehicle: its fuel efficiency (mpg, miles per gallon) and its weight (in pounds).
+The  project  has  three  goals:  (1)  build  a  regularized  linear  regression  model  (Ridge  regression)  to  limit
+overfitting;  (2)  choose  the  regularization  strength  alpha  (lambda)  objectively  with  cross-validation  using
+RidgeCV  instead  of  guessing  it;  (3)  explain  the  predictions  of  the  final  model  with  SHAP  (SHapley  Additive
+exPlanations) to understand which feature drives the predicted acceleration.
+Main  results:  the  Ridge  model  with  alpha  =  1  reached  a  test  RMSE  of  2.359  seconds;  the  cross-validated
+RidgeCV  model  selected  alpha  =  5.0  and  reached  a  test  RMSE  of  2.360  seconds.  SHAP  analysis  showed
+that  weight  has  a  strong  negative  impact  on  the  predicted  acceleration,  while  mpg  has  a  positive  impact  of
+similar magnitude.
+2. Dataset used in the Car Performance Prediction project
+The data comes from the file mpg.csv (the well known Auto MPG dataset), loaded with pandas from Google
+Drive in Colab. It contains 398 cars and 9 columns:
+- mpg: fuel consumption in miles per gallon (from 9.0 to 46.6, std about 7.8)
+- cylinders: number of cylinders (3 to 8)
+- displacement: engine displacement (68 to 455)
+- horsepower: engine power, stored as text because some values are missing and coded as '?'
+- weight: vehicle weight in pounds (1613 to 5140, std about 846)
+- acceleration: the target variable (8.0 to 24.8, std about 2.76)
+- model_year: year of the model, from 70 to 82 (1970 to 1982)
+- origin: region of origin coded 1, 2, 3 (1 = USA, 2 = Europe, 3 = Japan)
+- name: car name (305 unique values, e.g. chevrolet chevelle malibu, ford torino)
+Example rows: chevrolet chevelle malibu (mpg 18, 8 cylinders, weight 3504, acceleration 12.0); buick skylark
+320 (mpg 15, weight 3693, acceleration 11.5); ford torino (mpg 17, weight 3449, acceleration 10.5).
+3. Problem definition and feature selection
+In the Car Performance Prediction project the task is a regression problem. The input features X are the two
+numerical columns mpg and weight; the target y is acceleration.
+Car Performance Prediction - Celestin Signe Sighano - page 1
+Choosing only two features keeps the model simple and fully interpretable: each prediction can be
+decomposed  into  the  contribution  of  fuel  efficiency  and  the  contribution  of  weight.  The  two  features  are
+physically  meaningful:  heavier  cars  tend  to  be  slower  to  accelerate,  while  more  fuel  efficient  cars  in  this
+1970-1982  dataset  are  usually  lighter,  smaller  cars.  Because  mpg  and  weight  are  strongly  correlated  with
+each other, a regularized model such as Ridge is a sensible choice: the L2 penalty stabilizes the coefficients
+when predictors are collinear.
+The  horsepower  column,  which  contains  '?'  placeholders  for  missing  values,  was  not  used,  so  no  missing
+value imputation was needed in this notebook.
+4. Train/test split and feature scaling
+The data was split with scikit-learn train_test_split using test_size = 0.3 and random_state = 101, giving 278
+cars in the training set (70 percent) and 120 cars in the test set (30 percent). The fixed random_state makes
+the results reproducible.
+Feature scaling was performed with StandardScaler before training the Ridge model. Scaling is required for
+Ridge  regression  because  the  L2  penalty  is  applied  to  the  size  of  the  coefficients:  without  scaling,  weight
+(values in thousands) and mpg (values in tens) would be penalized very differently. The scaler was fitted only
+on  the  training  data  (fit_transform  on  X_train)  and  then  applied  to  the  test  data  (transform  on  X_test).  This
+avoids  data  leakage,  because  no  information  from  the  test  set  is  used  to  compute  the  mean  and  standard
+deviation.
+Example:  the  first  training  car  had  mpg  14.0  and  weight  4096,  which  became  -1.244  and  1.368  after
+standardization (values expressed in standard deviations from the training mean).
+5. Baseline Ridge regression model (alpha = 1)
+Ridge regression is linear regression with an L2 regularization term: it minimizes the sum of squared errors
+plus  alpha  (also  called  lambda)  multiplied  by  the  sum  of  the  squared  coefficients.  The  penalty  shrinks  the
+coefficients  toward  zero  and  reduces  the  variance  of  the  model,  which  helps  against  overfitting.  Lasso,  by
+contrast, penalizes the absolute value of the coefficients (L1 penalty).
+In  the  Car  Performance  Prediction  project  a  first  Ridge  model  was  trained  with  alpha  =  1  on  the  scaled
+training set, then evaluated on the scaled test set.
+First  six  predictions  compared  with  the  real  acceleration  values:  predicted  16.13  vs  actual  16.5;  14.99  vs
+17.8; 17.93 vs 17.9; 13.41 vs 12.5; 13.79 vs 12.0; 15.69 vs 12.8.
+Evaluation  metric:  Root  Mean  Squared  Error,  RMSE  =  sqrt(mean_squared_error(y_test,  predictions)).  The
+baseline Ridge model obtained RMSE = 2.359 seconds on the test set.
+6. Choosing the hyperparameter alpha with cross-validation (RidgeCV)
+A key question in the Car Performance Prediction project was: how can we be sure that alpha = 1 is the best
+value  for  the  regularization  strength?  Instead  of  guessing,  the  author  used  cross-validation  with  scikit-learn
+RidgeCV.
+RidgeCV was configured with alphas = np.linspace(0.01, 5, 7), i.e. seven candidate values: 0.01, 0.84, 1.67,
+2.51, 3.34, 4.17 and 5.0, and with scoring = 'neg_mean_squared_error'. RidgeCV trains the model for each
+alpha, evaluates it with cross-validation on the training data only, and keeps the alpha with the best score.
+Result: the best alpha selected was alpha_ = 5.0. The test RMSE of the RidgeCV model was 2.360 seconds,
+Car Performance Prediction - Celestin Signe Sighano - page 2
+practically  identical  to  the  baseline  (2.359).  The  final  standardized  coefficients  were  +0.584  for  mpg  and
+-0.560 for weight.
+Interpretation:  the  selected  alpha  is  the  upper  limit  of  the  search  grid,  which  suggests  that  an  even  larger
+alpha  could  be  tested;  a  note  in  the  notebook  mentions  that  an  earlier,  wider  grid  found  alpha  =  10  as  the
+best  value.  The  almost  unchanged  RMSE  shows  that  with  only  two  features  the  model  is  not  overfitting,  so
+stronger regularization neither helps nor hurts much.
+7. Model interpretation with SHAP (explainable AI)
+To  interpret  the  predictions  of  the  RidgeCV  model,  the  Car  Performance  Prediction  project  uses  SHAP
+(SHapley  Additive  exPlanations).  SHAP  values,  based  on  game  theory,  measure  how  much  each  feature
+pushes an individual prediction higher or lower compared with the average (expected) prediction.
+Implementation: the scaled training and test arrays were converted into pandas DataFrames with the column
+names mpg and weight, so that the plots show readable feature names. A SHAP explainer was created with
+shap.Explainer(model_cv,  scaled_X_train,  feature_names=...),  using  the  training  data  as  background,  and
+the SHAP values were computed on the 120 test cars. The SHAP value matrix has shape (120, 2): one value
+per  test  car  and  per  feature.  For  a  linear  model  like  Ridge,  the  SHAP  value  of  a  feature  is  its  coefficient
+multiplied  by  the  difference  between  the  feature  value  and  its  background  mean,  so  the  explanations  are
+exact.
+Three  visualizations  were  produced:  a  SHAP  summary  (beeswarm)  plot,  a  SHAP  feature  importance  bar
+chart  (mean  absolute  SHAP  value  per  feature),  and  a  SHAP  decision  plot  for  the  first  20  test  cars,  starting
+from the explainer expected value.
+8. Results and conclusions of the Car Performance Prediction project
+Model performance: Ridge (alpha = 1) test RMSE = 2.359 seconds; RidgeCV (alpha = 5) test RMSE = 2.360
+seconds. For comparison, the standard deviation of acceleration in the whole dataset is about 2.76 seconds,
+so the two-feature model captures part, but not all, of the variability in acceleration. Typical prediction errors
+are a little over 2 seconds.
+Feature effects: weight has a negative effect (coefficient -0.560 in standardized units): the heavier the car, the
+lower the predicted acceleration value. mpg has a positive effect (coefficient +0.584): more fuel efficient cars
+get a higher predicted acceleration value. Both features have impacts of similar magnitude.
+Conclusion  stated  by  the  author:  according  to  the  three  SHAP  plots,  weight  is  the  feature  that  impacts  the
+model predictions the most, with a negative and strong impact on the acceleration of a car.
+Skills  demonstrated:  data  loading  and  exploration  with  pandas,  train/test  split,  standardization  without  data
+leakage, Ridge (L2) regularization, hyperparameter tuning with cross-validation (RidgeCV), regression
+evaluation with RMSE, and model explainability with SHAP.
+9. Limitations and possible improvements
+The Car Performance Prediction project could be extended in several ways:
+- Use more predictors (horsepower after cleaning the '?' values, displacement, cylinders, model_year, origin
+as a categorical variable), which would likely reduce the RMSE.
+- Widen the alpha search grid (for example on a logarithmic scale such as np.logspace(-3, 3)) since the best
+alpha was at the edge of the tested range.
+Car Performance Prediction - Celestin Signe Sighano - page 3
+- Add polynomial features and interactions, where Ridge regularization becomes much more useful to control
+overfitting.
+-  Report  additional  metrics  such  as  MAE  and  R  squared,  and  compare  with  a  simple  baseline  that  always
+predicts the mean acceleration.
+-  Try  non  linear  models  (random  forest,  gradient  boosting)  and  compare  their  SHAP  explanations  with  the
+linear model.
+- Wrap the scaler and the model in a scikit-learn Pipeline to make preprocessing and deployment safer.
+
+
+
+project 4- Capstone project of RBS student Group 
+
+Abstract 
+This project analyses revenue dynamics and customer churn in a logistics company to support 
+data-driven decision-making and improve long-term performance. The company’s vision is to 
+achieve sustainable growth through efficient logistics operations and strong customer 
+relationships, while its mission focuses on delivering reliable and scalable transport solutions. 
+The  main  business  challenge  addressed  is  the  decline  in  revenue  driven  by  changes  in 
+customer  activity.  The  objective  of  the  analysis  is  to  identify  the  drivers  of  this  decline  and 
+define actionable strategies to improve customer retention and revenue stability. 
+The  company’s  business  needs  include  better  visibility  over  customer  behaviour,  early 
+detection  of  revenue  deterioration,  and  more  targeted  commercial  strategies.  The  analysis 
+reveals a strong competitive advantage in data availability, enabling advanced analytics across 
+customers, sectors, and geographic regions. 
+Results show that revenue is highly concentrated, with 20% of customers generating 93.8% of 
+total revenue,  and that churn  is  primarily  driven by  declining  activity  among  existing  clients. 
+This  creates  both risk  and  opportunity.  Key risks  include  dependency  on  high-value  clients, 
+sector exposure, and geographic concentration. However, opportunities exist in recovering at-
+risk customers, optimizing sector strategies, and improving regional targeting. 
+The  proposed  strategy  focuses  on  implementing  an  early-warning  system,  prioritizing  high-
+value  customer  recovery,  and  adopting  differentiated  actions  across  sectors  and  regions. 
+While  the  company  demonstrates  a  solid  operational  and  technological  foundation,  further 
+investment  in  data  quality  and  analytics  capabilities  is  recommended  to  support  scalable 
+growth and competitive advantage.
+
+1 Introduction 
+The role of the logistics sector in modern supply chains is critical, as it facilitates the movement 
+of goods in an efficient manner in an increasingly complex and dispersed market (Christopher, 
+2016). As competition in the market is rising and the business environment is becoming more 
+challenging in terms of reduced business margins, it is not only essential to make 
+improvements in the business processes but also to develop a deeper understanding of the 
+clients and their demands. 
+With  the  rise  of  transactional  data,  there  is  an  opportunity  to  make  data-driven  decisions 
+(Waller and Fawcett, 2013). However, there is still a lack of structural analytical frame work 
+that enables businesses to comprehend client behaviour and make decisions in advance to 
+maintain the business's stability and growth in the long term. Especially, comprehending the 
+revenue generated from clients and its evolution over time is essential in maintaining business 
+stability and growth. 
+To  address  these  challenges,  this  study  aims  to  analyse  revenue  data  of  the  clients  of  the 
+logistics firm and understand their behaviour over time. The clients are observed over a period 
+of 36 months, allowing to analyse their behaviour over time. 
+In contrast to traditional methods that view customer churn as a yes or no event, this study 
+takes  a  behavioural  and  revenue-based  view (Neslin  et  al.,  2006).  It  does  not  just focus  on 
+customer inactivity; it also looks at gradual declines in activity as early signs of disengagement. 
+This difference is very important in business-to-business (B2B) logistics, where clients often 
+decrease shipment volumes slowly instead of ending the professional relationship suddenly. 
+Additionally, the analysis includes forward-looking indicators from predictive models (Verbeke 
+et  al.,  2012).  By  blending  historical  performance  and transactions  with  short-term  forecasts, 
+this  project  helps  identify  early  warning  signals  of  revenue  decline,  which  allows  for  timely 
+intervention. 
+
+2 Literature Review 
+2.1 Logistics and Data-Driven Decision Making 
+The role of logistics has transformed from an operational to a strategic function in supply chain 
+management. This is because of the increasing complexity of the network and the variability 
+of demand, which necessitate timely and informed decisions (Christopher, 2016). Thus, data 
+analytics  is  an  essential  tool  in  enhancing the visibility,  performance  and responsiveness  of 
+the logistics function (Waller and Fawcett, 2013): 
+This can be attributed to the increasing adoption of data-driven decisions, which encompass 
+various  forms  of  descriptive,  diagnostic,  predictive,  and  prescriptive  analytics  to  support 
+ 
+8  
+strategic decisions (Davenport and Harris, 2007). These types of decisions are essential in the 
+logistics function because of the large-scale operations and demand variability. 
+ 
+2.2 Revenue Concentration and Business Risk 
+Revenue concentration is another common phenomenon in a business in which the majority 
+of the revenue is generated by a small percentage of customers. This phenomenon is closely 
+linked with the Pareto principle (Koch, 2008). However, this structure also poses risks because 
+the business is now heavily dependent on a small number of clients. 
+The risks posed by this structure can be quantified with the help of the Gini coefficient and the 
+Lorenz  curve,  which  quantify the  inequality  in  value  distribution  (Cowell, 2011).  In  customer 
+portfolio management, high concentration levels imply that a decrease in revenue is likely to 
+be driven by a small number of economically significant customers. 
+As shipment volumes are often dominated by a limited number of large accounts, 
+understanding concentration is therefore essential for evaluating structural risk. 
+ 
+2.3 Customer Churn 
+Typically,  customer  churn  is  defined  as  the  termination  of  a  contractual  relationship,  with 
+particular emphasis on subscription-based businesses (Neslin et al., 2006). However, in B2B 
+environments, churn is more gradual. 
+Recent research distinguishes between hard churn and soft churn, where declining 
+engagement precedes full customer loss (Verbeke et al., 2012). This approach is better suited 
+in  continuous  service  environments,  where  customers  may  reduce  activity  rather  than  stop 
+suddenly. 
+ 
+2.4 Revenue-Based Churn and Early Warning Systems 
+As  customer  value  is  not  evenly  distributed,  revenue-based  churn  analysis  is  more  relevant 
+than customer-based churn analysis (Fader and Hardie, 2009). This is because the loss of a 
+few high value customers in the case of a high concentration portfolio would affect the overall 
+revenue generated. 
+Early  warning  systems  are  designed  to  address  this  problem  through  the  early  detection  of 
+declining  customer  activity  using  behavioural  indicators  (Verbeke  et  al.,  2012).  This  is  very 
+useful in the logistics sector because the volume of shipments is likely to be indicative of the 
+customer’s demand patterns. 
+ 
+9  
+2.5 Customer Segmentation and Portfolio Analysis 
+Customer segmentation is the process of grouping customers according to their characteristics 
+and  behaviours (Wedel and  Kamakura,  2000).  This  is  very  useful  in  developing  appropriate 
+marketing strategies. 
+Portfolio analysis is another useful concept that helps firms segment their customers using the 
+BCG  matrix  (Henderson,  1970).  This  matrix  is  useful  in  developing  appropriate  marketing 
+strategies  according  to  the  performance  of  the  customer  segments.  This  is  very  useful  in 
+allocating resources effectively, especially in the case of heterogeneous B2B markets. 
+ 
+2.6 Temporal Analysis and Seasonality 
+Time  series  analysis  presents  a  framework  to  grasp  temporal  patterns,  such  as  trends, 
+seasonality  and  volatility  (Hyndman  and  Athanasopoulos,  2021).  In  logistics,  seasonality  is 
+relevant due to cyclical demand in sectors, such as retail and manufacturing. 
+Failure to grasp these trends may cause an organisation to misinterpret customer behaviour. 
+A  dip  in  activity  may  be  perceived  as  an  indication  of  declining  customer  base.  Therefore, 
+temporal analysis is critical in distinguish between these trends. 
+ 
+2.7 Prescriptive Analytics and Decision Support 
+Machine learning and prescriptive analytics have been used in business settings due to their 
+ability  to  analyse  data  with  intricate  relationships  (James  et  al.,  2021).  In  churn  prediction, 
+methods like ensemble models have shown promising results (Verbeke et al., 2012). 
+However,  it  is  critical  to  strike  a  balance  between  predictive  accuracy  and  interpretability. 
+Comprehending  the  drivers  of  predictions  is  essential  for  translating  analytical  outputs  into 
+actionable decisions. 
+ 
+2.8 Research Gap and Contribution 
+While the existing literature has covered the concepts of revenue concentration, churn analysis, 
+demand forecasting and segmentation separately, the reality is that these are interconnected. 
+The contribution of the study is the integration of these concepts of revenue structure, churn 
+diagnostics, segmentation and demand forecasting.  
+This  integration  of  customer  behaviour  with  sectoral  and  geographical  dynamics  is  more 
+effecting in comprehending the dynamics of revenue decline in the logistics sector. 
+ 
+10  
+3 Data and Methodology 
+3.1 Research Design and Analytical Framework 
+This  research  uses  a  data-driven  analytical  framework  to  analyse  the  revenue  structure, 
+customer churn, and support strategic decision-making. This framework progresses through 
+descriptive analytics, diagnostic analytics, behavioural segmentation, and finally prescriptive 
+analytics. This progression is in line with existing frameworks of business analytics (Davenport 
+& Harris, 2007). 
+The analytical process is divided into four stages: descriptive analytics (revenue structure and 
+composition  of  the  portfolio),  diagnostic  analytics  (causes  of  customer  churn  and  revenue 
+decline),  behavioural  segmentation  (segmenting  customers  based  on  their  behaviour),  and 
+prescriptive  analytics  (actionable  insights  for  strategic  business  decisions).  These  analytics 
+were  applied  to  customers,  industries,  geographical  areas,  and  interactions  among  them, 
+enabling the identification of localized performance patterns and targeted interventions. 
+ 
+3.2 Data Description and Preprocessing 
+The data set contains client-level data with reported revenue for 36 monthly variables (M-35 
+to M-0). 
+Data Preparation involves aggregating monthly revenue into total customer revenue, 
+structuring  two  six-month  periods  for  assessing  recent  performance,  addressing  missing 
+categorical data by adding an “Unknown” category, and ranking clients by revenue contribution 
+for prioritization purposes. 
+This  process  is  consistent  with  establishing  suitability  for  both  statistical  and  business 
+interpretation. 
+ 
+3.3 Descriptive Analytics: Revenue Structure Analysis 
+Revenue concentration was assessed using complementary techniques: 
+• Pareto analysis to identify key revenue-generating customers (Koch, 2008) 
+• Gini coefficient to quantify inequality (Cowell, 2011) 
+• Lorenz curve to visualize revenue distribution (Cowell, 2011) 
+A churn sensitivity analysis was conducted by simulating the impact of reduced activity among 
+top customer segments to evaluate business fragility. 
+Sector  analysis  was  carried  out  using  ATECO  classification,  entailing  revenue  aggregation, 
+client counts and average revenue per client. Results were visualized using multi-dimensional 
+scatter plots. 
+ 
+11  
+A BCG matrix framework (Henderson, 1970) was  implemented to classify sectors based on 
+growth and revenue contribution to support strategic portfolio interpretation. 
+ 
+3.4 Diagnostic Analytics: Churn and Revenue Decline 
+Customers were grouped into three activity states: active (stable or increasing activity), fading 
+(declining activity) and inactive (no recent activity). 
+Churn was tracked on a revenue-weighted basis to reflect economic impact. This analysis was 
+conducted across geographic (macro-regions and territories) and sector (ATECO) dimensions 
+in order to pinpoint areas where revenue loss is occurring. 
+Time-series  analysis  of  monthly  revenue  was  used  to  assess  seasonality,  volatility,  and 
+demand  fluctuations,  enabling  differentiation  between  temporary  variation  and  structural 
+decline. 
+ 
+3.5 Behavioural Segmentation 
+A  behavioural  segmentation  approach  (Wedel  &  Kamakura,  2000)  was  implemented  by 
+incorporating activity states, revenue contribution and sector/geographic attributes. 
+This  allowed  the  identification  of  high-value  at-risk  customers,  stable  segments  and  sector-
+specific behavioural patterns. 
+ 
+3.6 Prescriptive Analytics 
+The  analytical  insights  were  then  translated  into  actionable  strategies,  consistent  with  data-
+driven decision-making principles (Davenport & Harris, 2007). 
+Forecast  data  was  incorporated  to  evaluate  expected  performance  and  identify  continued 
+decline trends and a multi-level decision framework was developed by integrating customer-
+level prioritisation with sector-level strategies and geographic targeting, enabling the transition 
+from analysis to actionable business decisions. 
+ 
+3.7 Visualization and Analytical Tools 
+Data analysis and visualization were conducted using Python. Key tools, such as Pandas and 
+NumPy supported data aggregation, statistical analysis, and visualization of revenue patterns. 
+Advanced visualization techniques, like multi-dimensional charts and time-series smoothing, 
+were used to support interpretation and communication of results. 
+ 
+ 
+3.8 Evaluation Strategy 
+The  analytical  framework  is  evaluated  based  on  its  ability  to:  identify  high-risk,  high-value 
+segments,  quantify  revenue  exposure  and  decline  and  support  targeted  and  actionable 
+decision-making. 
+The  focus  is  on  ensuring  practical  business relevance  and  direct  applicability  to managerial 
+decisions. 
+4 Results and Discussion 
+4.1 Revenue Structure and Portfolio Composition 
+4.1.1 Revenue Concentration 
+The analysis of revenue concentration shows that there is a highly unequal distribution across 
+the  client  base.  Pareto  analysis  confirms  that  a  small  proportion  of  clients  generates  the 
+majority of revenue, with the top 20% accounting for 93.8% of total company revenue.
+This  level  of  concentration  implies  a  strong  dependency  on  a  limited  number  of  high-value 
+clients,  exposing  the  company  to  significant  concentration  risk.  Small  variations  in  the 
+behaviour  of  these  key  accounts  can  generate  disproportionately  large  changes  in  total 
+revenue.  This  structural  fragility  provides  a  critical  foundation  for  the  subsequent  analysis,  
+suggesting that revenue decline is likely to be driven by changes in a relatively small number 
+of economically significant customers. 
+ 
+4.1.2 Revenue Sensibility and Risk Exposure 
+To assess business fragility, a churn sensitivity analysis was conducted, simulating the impact 
+of losing top-performing client segments. 
+The results highlight the extreme sensitivity of the company’s revenue to its largest accounts. 
+The loss of just 5% of top clients would result in a reduction of approximately € 249.5 million, 
+equivalent  to  73.84%  of  total  revenue.  Expanding  this  scenario,  the  loss  of  the  top  10%  of 
+clients would eliminate nearly 85% of total revenue. 
+These  findings  confirm  that  revenue  concentration  is  not  only  a  structural  characteristic  but 
+also a critical risk factor. The company’s performance is highly dependent on a small number 
+of high-value clients, making it particularly vulnerable to changes in their activity. 
+This reinforces the importance of early detection of customer decline, especially among top-
+tier accounts, as even small variations can have a disproportionate financial impact. 
+
+4.1.3 Sector Performance and Portfolio Structure 
+Sectoral analysis based on ATECO classification reveals that revenue is unevenly distributed 
+across industries, with a limited number of sectors accounting for a large share of total revenue. 
+Wholesale  and  retail  trade  dominates  the  portfolio,  contributing  approximately  41%  of  total 
+revenue  and  representing  the  largest  share  of  clients.  Transportation  and  storage  also 
+contribute significantly, combining high revenue with a more moderate client base. At a more detailed level, sector performance varies considerably. E-commerce retail generates 
+the highest total revenue but exhibits relatively low revenue per client, indicating a high-volume, 
+lower-margin  profile.  In  contrast,  logistics  services  and  office  support  demonstrate  higher 
+revenue per client (approximately €185K and €105K respectively), reflecting stronger pricing 
+or higher-value contracts. These sectors are explained in more detail on Table 7 
+These  discrepancies  are  visible  in  the  sector  portfolio  matrix  (Figure  6),  where  logistics 
+services  occupy  a  premium  position  (combining  relatively  high  revenue  with  lower  client 
+volume).  E-commerce  is  the  opposite,  with  a  high  volume  but  lower  per-client  value.  Office 
+support achieves the highest pricing levels despite lower overall scale.   
+The results indicate that the company’s revenue base is highly dependent on a limited number 
+of  key  sectors.  While  this  concentration  supports  scale,  it  also  introduces  sectoral  risk,  as 
+changes in demand or competitive conditions within these sectors can have a disproportionate 
+impact on performance. 
+This provides an important foundation for subsequent analyses, as sector-level dynamics are 
+likely to influence patterns of churn and customer behaviour.
+
+4.1.4 Growth Dynamics and BCG Matrix 
+The sector portfolio was further analysed using a BCG matrix framework, classifying sectors 
+into Stars, Cash Cows, Question Marks, and Dogs based on growth and revenue contribution.
+ The results highlight clear differences in sector positioning. High-growth, high-revenue sectors 
+represent  the  company’s  primary  growth  engines  and  require  continued  investment.  In 
+contrast, high-revenue but low-growth sectors provide stable income streams and should be 
+managed through defensive strategies. 
+Sectors  with  high  growth  but  lower  contribution  represent  potential  opportunities,  requiring 
+selective  investment  to  strengthen  their  position.  Conversely,  low-growth,  low-contribution 
+sectors contribute limited value and may require resource reallocation. A summary of the BCG 
+Matrix is provided on Annex A.Overall, the BCG analysis reinforces the importance of balancing short-term revenue stability 
+with long-term growth, supporting more effective portfolio management and resource allocation 
+decisions.
+
+4.1.5  Geographic Distribution of Revenue 
+Revenue is unevenly distributed across geographic regions, highlighting a strong 
+concentration in a limited number of key areas. At a detailed level, Milano is the largest territory, 
+and  together  with  Monza,  Varese,  and  Brescia  accounts  for  approximately  20%  of  total 
+company revenue (Figure 7). These territories represent the core of the company’s geographic 
+footprint. At a macro-regional level, the Northwest dominates the revenue base, generating 
+approximately €107.7 million, equivalent to 31.9% of total revenue (Figure 8). The “Unknown” 
+category represents a significant share at 20.1%, highlighting a limitation in geographic data 
+quality 
+Client distribution further supports this pattern. While the Northwest and Centre host a similar 
+number of clients, their revenue contributions differ significantly, indicating variation in average 
+customer value. This suggests that regional performance is driven more by client quality than 
+by client volume. 
+Overall,  these  results  highlight  two  key  structural  insights.  First,  geographic  concentration 
+creates  dependency  on a  limited  number  of regions,  increasing  exposure  to  localized  risks. 
+Second, differences in average revenue per client indicate that some regions offer higher-value  
+opportunities,  while  others  may  represent  growth  potential  through  improved  targeting  and 
+pricing strategies. 
+From  a  strategic  perspective,  high-revenue  regions  such  as  the  Northwest  act  as  critical 
+revenue anchors but also represent key sources of risk. At the same time, lower-performing 
+regions may offer opportunities for expansion. 
+Finally, the large “Unknown” geographic category reduces the precision of the analysis and 
+should be addressed as a data quality priority. 
+
+4.1.6 Strategic Implications for Revenue Structure 
+The  results  of  Section  4.1  provide  a  critical  foundation  for  interpreting  customer  churn 
+dynamics and revenue risk. First, the extreme level of customer concentration indicates that 
+revenue  is  driven  by  a  small  number  of  high-value  accounts.  The  company  shows  strong 
+dependency on approximately 1,000 “whale” clients, with the top 5% generating around 74% 
+of total revenue. 
+Second, sector concentration suggests that industry-specific dynamics will play a key role in 
+shaping performance. High-revenue sectors represent both strategic opportunities and surces 
+of vulnerability.  
+Third, geographic concentration indicates that revenue risk is unevenly distributed, reflecting 
+local  market  conditions  and  differences  in  customer  value  across  regions.  Overall,  these 
+findings  confirm  that  revenue  risk  is  highly  concentrated  and  structurally  predictable,  rather 
+than random. This provides a strong basis for the targeted analysis of churn and behavioural 
+patterns developed in subsequent sections. 
+
+4.2 Customer Churn and Demand Dynamics 
+4.2.1 Company-Level Churn Diagnostic 
+As  described  in  Table  1,  the  company  is  experiencing  significant  revenue  pressure  driven 
+primarily by declining activity among existing customers rather than complete customer loss. 
+Across €336.8 million of historical revenue, revenue-weighted churn reaches 37.7%, of which 
+28.9% is associated with at-risk (fading) customers and 8.8% with inactive customers. Recent performance shows € 61.97 million in revenue over the last six months, representing 
+a  9.3%  increase  compared  to  the  previous  period.  However,  the  forward-looking  forecast 
+indicates a decline to € 48.73 million over the next six months, corresponding to a projected 
+decrease  of  21.4%.  This  suggests  that  current  performance  is  not  sustainable  and  that 
+underlying weaknesses persist.
+Recent performance shows € 61.97 million in revenue over the last six months, representing 
+a  9.3%  increase  compared  to  the  previous  period.  However,  the  forward-looking  forecast 
+indicates a decline to € 48.73 million over the next six months, corresponding to a projected 
+decrease  of  21.4%.  This  suggests  that  current  performance  is  not  sustainable  and  that 
+underlying weaknesses persist 
+The  forecast  in  Figure  9  shows  that  the  primary  factor  causing  the  revenue  decline  is  the 
+progressive deterioration of the customers' activity, rather than abrupt churn. This creates an 
+opportunity for early intervention before customers become fully inactive. 
+ 
+4.2.2 Geographic Analysis – Macro-Regions 
+Customer churn varies significantly across macro-regions, indicating that revenue decline is 
+not geographically uniform. 
+The Northwest represents the largest exposure, accounting for 31.9% of total revenue and € 
+3.01 million already lost. It combines high scale with elevated churn, making it one of the most 
+critical risk areas. The Northeast and Centre exhibit the highest churn rates, at 43.8% and 40.7% 
+respectively, indicating structurally weaker customer retention. In contrast, the Islands region 
+shows lower churn (18.6%) and recent growth, suggesting a more resilient segment, while the 
+South is the only region currently experiencing contraction (-4.8%). 
+Table 4 summarizes macro-region performance across revenue share, churn, recent 
+momentum, and forecast. The key insight is that risk is concentrated where high revenue share 
+overlaps with high churn and weak forward outlook, particularly in the Northwest, Centre, and 
+Northeast. 
+This confirms that the company should not manage the market with a uniform national strategy, 
+but  instead  adopt  region-specific  approaches  reflecting  local  demand  conditions,  sector 
+exposure, and competitive dynamics. 
+Figure  10  further  illustrates  this  relationship  by  comparing  revenue  share  and  churn  rates 
+across macro-regions. While the Northwest is the largest contributor to revenue, the Northeast 
+and Centre carry the highest churn intensity, reinforcing the concentration of risk. In contrast, 
+smaller regions such as the Islands exhibit more stable performance. 
+
+Forecast analysis indicates that all macro-regions are expected to contract over the next six 
+months,  with  the  most  significant  decline  projected  in  the  Islands  (-34.0%),  followed  by  the 
+Northeast  (-18.2%),  Centre  (-14.6%),  and  South  (-10.6%).  This  suggests  that  even  regions 
+with recent positive performance are unlikely to sustain growth, highlighting the need to move 
+from reactive diagnosis to proactive intervention. This data is shown on Figure 17 
+Finally, a significant limitation is the presence of a large “Unknown” geographic category, 
+representing 20% of total revenue, shown in Figure 18. This segment also exhibits a negative 
+forecast  and  an  inactive  share  of  approximately  14%,  reducing  the  reliability  of  regional 
+analysis. Improving geographic data quality should therefore be treated as a priority. 
+ 
+4.2.3 Territory-Level Analysis 
+At a more granular level, territory-level analysis highlights that revenue decline is concentrated 
+in a limited number of economically significant municipalities. 
+Milano  is  the  largest  territory,  accounting  for  12.86%  of  total  revenue  and  representing  the 
+largest loss pocket (€ 1.12 million). Roma follows with 8.37% of revenue and € 0.75 million lost. 
+These territories combine high revenue concentration with substantial decline, making them 
+the most critical areas of risk. In contrast, smaller territories such as La Spezia and Benevento 
+exhibit sharper contractions (-51.8% and -81.4%), but their overall impact is limited due to their 
+smaller revenue base. 
+At the same time, certain territories demonstrate more resilient performance. Palermo shows 
+low  churn  (6.5%)  and  strong  recent  growth  (21.3%),  while  Varese  combines  relatively  low 
+churn (13.2%) with a slightly positive forecast (1.3%), indicating early signs of stabilization. 
+Table 5 presents the top municipalities by revenue contribution and performance indicators. 
+The  key  insight  is  that  large  territories  with  declining  performance  represent  the  greatest 
+economic risk, as even moderate deterioration translates into significant absolute revenue loss.
+
+Additional  insight  is  provided  by  the  identification  of  problematic  and  recovering  territories 
+(Annex B: Figure and Tables (section 4.2) ). Problematic territories are 
+characterized  by  a  combination  of  high  revenue  loss,  elevated  churn,  and  negative  recent 
+momentum.  In  several  cases,  these  include  economically  relevant  municipalities  where 
+deterioration  is  not  marginal  but  structurally  significant,  reinforcing  the  need  for  targeted 
+intervention at the local level. 
+Conversely,  recovering  territories  exhibit  a  positive  forecast  following  a  period  of  decline. 
+However, this recovery should be interpreted with caution, as it often reflects stabilization from 
+a  weakened  base  rather  than  a  return  to  previous  performance  levels.  Two  distinct  profiles 
+emerge: larger territories with moderate decline and early signs of stabilization (e.g., Varese 
+and  Salerno),  and  smaller  territories  with  severe  contraction  but  positive  forecast  dynamics 
+(e.g.,  Terni,  Foggia,  and  Ancona).  The  former  represents  stronger  candidates  for  proactive 
+recovery initiatives due to their economic relevance, while the latter require careful monitoring, 
+as their apparent growth is driven by low base effects. 
+ 
+4.2.4 Sector Analysis 
+Sectoral analysis reveals that revenue decline is concentrated in a limited number of industries, 
+with risk driven by both sector size and performance dynamics. 
+Ateco  G.47.91.10  represents  the  largest  sector  exposure  (9.01%  of  total  revenue)  and  the 
+largest source of lost revenue (€ 1.13 million), making it a key driver of overall decline. Ateco 
+H.53.20.00 emerges as the highest-risk large sector, combining elevated churn (51.4%) with 
+a strongly negative forecast (-32.1%). Similarly, Ateco H.52.29.22 shows high churn (43.6%) 
+alongside significant revenue contribution. In contrast, sectors such as G.47.62.20, J.62.02.00, 
+O.84.11.10,  and  J.62.01.00  demonstrate  greater  resilience,  with  lower  churn  and/or  more 
+stable outlooks. 
+Table 4 ranks sectors by revenue contribution and summarizes their performance across churn, 
+recent momentum, lost revenue, and forecast. The key insight is that large sectors with weak 
+performance represent structural vulnerabilities, while large and stable sectors act as strategic 
+anchors for the company. Sector composition is therefore a critical determinant of overall performance. A portfolio heavily 
+concentrated  in  fragile  industries  will  remain  unstable  even  if  geographic  performance 
+improves. Different sectors are also subject to distinct demand patterns, including seasonality, 
+economic cycles, and competitive dynamics, requiring differentiated management approaches. 
+Further analysis of problematic and outperforming sectors, detailed in Table 11 and Table 12 
+reinforces  this  conclusion.  Problematic  sectors  are  those  combining  meaningful  revenue 
+exposure  with  high  churn,  declining  momentum,  and/or  negative  forecast.  These  include 
+sectors  where  deterioration  is  already  material,  as  well  as  those  where  forward  outlook 
+suggests continued decline. In contrast, outperforming sectors exhibit stronger retention and 
+more stable demand patterns, making them suitable targets for expansion and replication of 
+successful commercial practices. 
+The sector risk matrix (Figure 11) provides a visual summary of these dynamics by mapping 
+churn against forecast performance. Sectors such as H.53.20.00, H.52.29.22, and G.47.91.10 
+are  positioned  in  the  high-risk  quadrant,  combining  high  churn  with  negative  outlook  and 
+significant economic weight. Conversely, sectors such as G.47.62.20, J.62.02.00, and 
+O.84.11.10 display lower churn and more stable performance, indicating greater resilience. 
+This analysis allows the company to distinguish between sectors requiring immediate retention 
+and service intervention and those that should be defended and expanded as part of a long-
+term growth strategy. 
+ 
+4.2.5 Combined Analysis (Geography x Sector) 
+While individual geographic and sector analyses provide useful insights, they remain too broad 
+to support precise decision-making. The combined geography × sector analysis enables the 
+identification of specific market segments where revenue decline is concentrated, allowing the 
+company to move from general diagnosis to targeted intervention. 
+The results confirm that underperformance is not uniform across regions or sectors, but rather 
+concentrated  in  a  limited  number  of  region–sector  combinations.  Certain  industries  perform 
+well overall but underperform in specific regions due to local competitive conditions, 
+operational  constraints,  or  demand  characteristics.  Conversely,  weaker  regions  may  still 
+contain resilient sectors. This reinforces the need for a more granular analytical approach. 
+The first level of analysis examines macro-region × sector interactions. Table 5 highlights the 
+most problematic combinations, where high revenue exposure overlaps with elevated churn, 
+significant lost revenue, and negative forward outlook
+These combinations represent the company’s most critical structural weaknesses, as both 
+geographic exposure and sector dynamics reinforce each other. Priority should be assigned 
+to combinations that combine scale, loss magnitude, and negative forecast, as they represent 
+the highest economic risk. 
+At a more detailed level, territory × sector analysis provides the most actionable insights. Table 
+6 identifies the most problematic territory–sector combinations, showing that revenue decline 
+is often driven by a small number of sector-specific issues within individual territories. 
+Underperformance is often not uniform across an entire macro-region or an entire sector.
+
+This level of analysis reveals that many broad performance issues are in fact highly localized. 
+A territory may appear to underperform overall, while the decline is concentrated in one or two 
+dominant sectors. This allows the company to move from general geographic or sector-based 
+strategies to precise, account-level intervention. 
+The concentration of revenue loss across geography–sector combinations is further illustrated 
+in Figure 12, which shows that revenue leakage is driven by a small number of high-impact 
+cells, particularly within the Northwest and Centre regions. For example, combinations such 
+as  Northwest  ×  H.52.29.22  represent  the  largest  pockets  of  loss,  confirming  that  revenue 
+decline is highly concentrated rather than diffuse.
+
+Conversely, additional analysis (reported in Figure 19) identifies combinations with stable or 
+positive  performance.  These  represent  areas  where  the  company’s  commercial  and 
+operational model is better aligned with market conditions and can serve as reference points 
+for  growth  and  replication. The tables  and  figure  provided  in  Annex  B  show  breakdowns  of: 
+outperforming  macro-region  ×  sector  combinations,  territory  ×  sector  positive  dynamics  and 
+revenue gain concentration 
+Overall, this combined analysis demonstrates that revenue decline is structured and localized, 
+enabling  the  company  to  prioritize  interventions  where  economic  impact  is  greatest  and  to 
+adopt a more targeted and efficient approach to performance management.
+4.2.6 Strategic Insights 
+The  results  of  this  section  give  a  clear  understanding  of  the  drivers  of  revenue  decline  and 
+highlight the need for targeted intervention. First, revenue decline is primarily driven by fading 
+customers, rather than fully inactive ones, indicating that revenue loss is a progressive process, 
+which creates a window for proactive intervention before clients are lost completely. 
+Second,  risk  is  not  uniformly  distributed,  but  concentrated  in  specific  geographic  regions, 
+sectors  and  a  combination  of  both.  High-risk  areas  appear  where  high  revenue  exposure 
+overlaps with elevated churn and negative forward outlook,  distinctly in key regions such as 
+the Northwest and in logistics-related sectors. 
+Third, it is inferred that revenue loss is highly localized, often concentrated in specific territory–
+sector  combinations,  which  suggests  that  broad  national  or  sector-wide  strategies  are 
+insufficient,  and  that  effective  intervention  must  be  targeted  at  the  level  of  specific  market 
+segments. 4.2.6 Strategic Insights 
+The  results  of  this  section  give  a  clear  understanding  of  the  drivers  of  revenue  decline  and 
+highlight the need for targeted intervention. First, revenue decline is primarily driven by fading 
+customers, rather than fully inactive ones, indicating that revenue loss is a progressive process, 
+which creates a window for proactive intervention before clients are lost completely. 
+Second,  risk  is  not  uniformly  distributed,  but  concentrated  in  specific  geographic  regions, 
+sectors  and  a  combination  of  both.  High-risk  areas  appear  where  high  revenue  exposure 
+overlaps with elevated churn and negative forward outlook,  distinctly in key regions such as 
+the Northwest and in logistics-related sectors. 
+Third, it is inferred that revenue loss is highly localized, often concentrated in specific territory–
+sector  combinations,  which  suggests  that  broad  national  or  sector-wide  strategies  are 
+insufficient,  and  that  effective  intervention  must  be  targeted  at  the  level  of  specific  market 
+segments. 4.2.6 Strategic Insights 
+The  results  of  this  section  give  a  clear  understanding  of  the  drivers  of  revenue  decline  and 
+highlight the need for targeted intervention. First, revenue decline is primarily driven by fading 
+customers, rather than fully inactive ones, indicating that revenue loss is a progressive process, 
+which creates a window for proactive intervention before clients are lost completely. 
+Second,  risk  is  not  uniformly  distributed,  but  concentrated  in  specific  geographic  regions, 
+sectors  and  a  combination  of  both.  High-risk  areas  appear  where  high  revenue  exposure 
+overlaps with elevated churn and negative forward outlook,  distinctly in key regions such as 
+the Northwest and in logistics-related sectors. 
+Third, it is inferred that revenue loss is highly localized, often concentrated in specific territory–
+sector  combinations,  which  suggests  that  broad  national  or  sector-wide  strategies  are 
+insufficient,  and  that  effective  intervention  must  be  targeted  at  the  level  of  specific  market 
+segments. 
+
+4.2.6 Strategic Insights 
+The  results  of  this  section  give  a  clear  understanding  of  the  drivers  of  revenue  decline  and 
+highlight the need for targeted intervention. First, revenue decline is primarily driven by fading 
+customers, rather than fully inactive ones, indicating that revenue loss is a progressive process, 
+which creates a window for proactive intervention before clients are lost completely. 
+Second,  risk  is  not  uniformly  distributed,  but  concentrated  in  specific  geographic  regions, 
+sectors  and  a  combination  of  both.  High-risk  areas  appear  where  high  revenue  exposure 
+overlaps with elevated churn and negative forward outlook,  distinctly in key regions such as 
+the Northwest and in logistics-related sectors. 
+Third, it is inferred that revenue loss is highly localized, often concentrated in specific territory–
+sector  combinations,  which  suggests  that  broad  national  or  sector-wide  strategies  are 
+insufficient,  and  that  effective  intervention  must  be  targeted  at  the  level  of  specific  market 
+segments. 
+
+Finally, the presence of a significant “Unknown” geographic category highlights a data quality 
+limitation, reducing the precision of the analysis and the effectiveness of resource allocation. 
+Overall, these findings indicate that revenue decline is structured, concentrated, and 
+predictable,  enabling  the  company  to  move  from  reactive  analysis  to  targeted,  data-driven 
+intervention strategies
+
+4.3 Behavioural Segmentation and Strategic Targeting 
+Building on the insights delivered on Section 4.2, this section studies a behavioural 
+segmentation of the client base aimed at supporting targeted strategic intervention. 
+ 
+4.3.1 Behavioural Segmentation Framework 
+Customers  were  classified  into  three  operational  activity  states,  grounded  in  their  observed 
+revenue dynamics across monthly shipment variables: Active, clients with stable or increasing 
+logistics  activity;  Fading  which  are  clients  sowing  declining  activity  and  elevated  churn  risk; 
+and Inactive which are client with no meaningful recent activity.  This classification facilitates 
+the  identification  of  clients  transitioning  toward  churn  before  they  become  inactive,  turning 
+churn analysis into a proactive process. 
+ 
+4.3.2 Alignment Between Behavioural Segments and Sector Structure 
+Behavioural patterns are not uniformly distributed but concentrated in specific sectors. Certain 
+industries  show  a  higher  proportion  of  fading  and  inactive  customers,  indicating  structural 
+vulnerability associated with sector-specific dynamics (like demand variability or competition). 
+The chart on Figure 13 describes the churn rate across different industries, calculated as the 
+share of fading and inactive customer within each sector
+
+4.3 Behavioural Segmentation and Strategic Targeting 
+Building on the insights delivered on Section 4.2, this section studies a behavioural 
+segmentation of the client base aimed at supporting targeted strategic intervention. 
+ 
+4.3.1 Behavioural Segmentation Framework 
+Customers  were  classified  into  three  operational  activity  states,  grounded  in  their  observed 
+revenue dynamics across monthly shipment variables: Active, clients with stable or increasing 
+logistics  activity;  Fading  which  are  clients  sowing  declining  activity  and  elevated  churn  risk; 
+and Inactive which are client with no meaningful recent activity.  This classification facilitates 
+the  identification  of  clients  transitioning  toward  churn  before  they  become  inactive,  turning 
+churn analysis into a proactive process. 
+ 
+4.3.2 Alignment Between Behavioural Segments and Sector Structure 
+Behavioural patterns are not uniformly distributed but concentrated in specific sectors. Certain 
+industries  show  a  higher  proportion  of  fading  and  inactive  customers,  indicating  structural 
+vulnerability associated with sector-specific dynamics (like demand variability or competition). 
+The chart on Figure 13 describes the churn rate across different industries, calculated as the 
+share of fading and inactive customer within each sector
+
+Sector-level revenue was combined with customer instability indicators to evaluate economic 
+impact.  It  was  concluded  that  risk  is  concentrated  in  sectors  that  combine  high  revenue 
+contribution  and  high  customer  instability,  turning  them  into  the  most  critical  areas  for 
+intervention. These findings reinforce earlier results, corroborating that sector composition is a 
+key driver of revenue risk. 
+
+4.3.3 Distribution and Revenue Exposure by Behavioural Segments 
+The  distribution  of  clients  across  behavioural  segments  provides  further  insight  into  the 
+structure of the customer base. As shown in Figure 15, the distribution of customers across 
+behavioural segments shows that inactive clients represent the largest share of the base, while 
+active customers account for a smaller but strategically important group. 
+Because fading customers remain active while showing early signs of decline, they represent 
+the most relevant group for proactive intervention. 
+
+While  active  customers  generate  the  largest  share  of  revenue,  fading  customers  also 
+contribute a significant portion, indicating that a substantial share of revenue is currently at risk 
+but still recoverable. Revenue decline is primarily driven by customers in transition. 
+ 
+4.3.4 Strategic Targeting Framework 
+Considering the distribution of revenue across behavioural segments, the analysis moves from 
+descriptive  segmentation  to  strategic  prioritization.  Fading  customers  represent  a  relatively 
+ 
+30  
+smaller share of the total client base, yet they account for a disproportionately large share of 
+revenue, turning them critical to business performance. 
+Practically, sectors and customer groups can be prioritized according to two dimensions: their 
+economic  importance  and  their  level  of  instability,  which  leads  to  the  following  prioritization 
+framework: 
+• High Priority Immediate Intervention): High revenue contribution and high proportion of 
+customers. These segments represent the greatest risk to overall performance. 
+• Medium priority (Monitor and engage): Moderate revenue contribution with emerging 
+instability. These segments require proactive monitoring and selective intervention;  
+• Low  priority  (Selective  focus):  Low  revenue  contribution,  regardless  of  churn  level. 
+These segments have limited impact on total performance. 
+This ensures that resources are allocated efficiently, focusing on segments where intervention 
+can generate the highest return. The results of Section 4.3 reinforce and extend the previous 
+analyses: revenue is highly concentrated; decline is driven by fading customers and these risks 
+are concentrated in specific sectors and behavioural segments. 
+ 
+4.4 Prescriptive Analytics and Action Plan 
+4.4.1 From Diagnosis to Prescriptive Decisions 
+The analysis in Sections 4.1, 4.2, and 4.3 provides a comprehensive understanding of revenue 
+structure, customer dynamics, and risk exposure. 
+Section 4.1 reveals that revenue is highly concentrated across a limited number of customers, 
+sectors,  and  geographic  areas.  Section  4.2  demonstrates  that  revenue  decline  is  primarily 
+driven by fading customers, which indicates a progressive and potentially reversible process. 
+Section  4.3  further  highlights  that  behavioural  risk  is  concentrated  in  specific  sectors  and 
+customer  segments.  Together,  these  findings  confirm  that  revenue  risk is  concentrated  and 
+predictable, providing a strong foundation for targeted, data-driven intervention. This section 
+translates these analytical findings into a structured and operational action plan. The focus is 
+on identifying where intervention should occur, how resources should be allocated, and which 
+actions are most likely to generate measurable impact. 
+ 
+4.4.2 Quantifying Revenue at Risk and Recovery Potential 
+Total historical revenue amounts to €336.76 million, of which 37.7% is associated with churn, 
+including 28.9% at-risk (fading) and 8.8% inactive. 
+Recent performance shows €61.97 million in revenue over the last six months. However, €9.61 
+million  has  already been  lost  compared to  the  previous  period,  and  the  forecast  indicates  a 
+decline to €48.73 million (-21.4%) in the next six months. 
+ 
+31  
+These results indicate that revenue decline is driven by progressive erosion within the existing 
+client base, rather than sudden demand collapse. Importantly, a large share of this revenue 
+remains  recoverable,  as  it  is  linked  to  customers  that  are  still  active  but  declining.  From  a 
+managerial  perspective,  this  implies  that  the  primary  opportunity  lies  in  intervening  early  to 
+prevent further decline, rather than focusing exclusively on reactivating inactive customers. 
+ 
+4.4.3 Customer-Level Prioritization and Recovery Strategy 
+Given the high revenue concentration identified in Section 4.1, intervention must focus on high-
+value customers. 
+Priority should be given to customers combining high revenue contribution, recent decline, and 
+negative  outlook.  In  practical  terms,  this  corresponds  to  approximately  the  top  100–200 
+declining accounts, which are likely to account for a disproportionate share of revenue loss. 
+Targeted  actions  should  include  account-level  diagnostics,  pricing  adjustments,  service 
+improvements,  and  proactive  engagement.  Due to  concentration  effects, recovering  a  small 
+number of high-value customers can generate significant impact. 
+ 
+4.4.4 Sector-Level Strategy and Portfolio Rebalancing  
+Sector-level  analysis  shows  that  risk  is  concentrated  in  a  limited  number  of  industries.  For 
+example, e-commerce (G.47.91.10) represents the largest exposure and loss (€1.13 million), 
+while  logistics-related  sectors  such  as  H.52.29.22  and  H.53.20.00  combine  high  churn  with 
+negative forecasts. 
+These sectors require  targeted retention strategies, including pricing flexibility, service 
+adaptation, and increased engagement. 
+Conversely, more stable sectors should be prioritized for growth, supporting portfolio 
+rebalancing. This dual approach allows the company to reduce risk while strengthening long-
+term performance. 
+ 
+4.4.5 Geographic and Territory-Level Intervention 
+Geographic analysis highlights significant regional disparities in performance. The Northwest 
+region (31.9% of revenue) represents the largest exposure and loss (€3.01 million), while the 
+Northeast and Centre exhibit the highest churn rates (43.8% and 40.7%, respectively). 
+At territory-level, key markets such as Milano and Roma combine high revenue with significant 
+decline, making them priority areas for intervention. Other territories exhibit severe 
+contractions, indicating localized demand shocks or operational issues. Territories should be 
+managed through a three-tier approach: recover territories, which require immediate 
+intervention,  including  detailed  account  reviews  and  targeted  recovery  campaigns;  defend 
+ 
+32  
+territories,  where  focus  should  be  on  maintaining  service  quality  and  prevention  of  further 
+erosion; and monitor territories that require observation but limited resource allocation. 
+ 
+4.4.6 Targeting High-Impact Geography-Sector Combinations 
+The  most  actionable  insights  emerge  from  combined  geography–sector  analysis  (Section 
+4.2.5). 
+Revenue loss is concentrated in specific combinations, such as Northwest × H.52.29.22 and 
+Northwest × H.53.20.00, which combine scale, high churn, and negative outlook. 
+These  combinations  should  be  prioritized  through  coordinated  action  between  regional  and 
+sector teams, enabling more precise and effective intervention than broad strategies. 
+ 
+4.4.7 Forecast-Driven Decision Framework 
+The forecasted decline (-21.4%) indicates that recent performance improvements are unlikely 
+to be sustained without intervention. 
+Forecast  signals  should  be  integrated  into  decision-making  as  early  warning  indicators. 
+Segments  with  negative  outlook  should  be  prioritized  for  immediate  action,  while  stable 
+segments can be monitored. 
+This approach shifts the organization from reactive to prescriptive management. 
+ 
+4.4.8 Data Quality and Operational Monitoring 
+The presence of a large “Unknown” geographic category (20% of revenue) limits analytical 
+precision. 
+Improving  data  quality  should  be  treated  as  a  priority,  alongside  the  implementation  of 
+monitoring systems tracking customer activity, sector performance, and regional dynamics. 
+ 
+4.4.9 Strategic Synthesis and Expected Impact 
+The  prescriptive  framework  developed  in  this  section  operates  across  three  interconnected 
+levels: 
+• Customer level: prioritize high-value declining accounts; 
+• Segment level: target high-risk sectors and geographic areas; 
+• Portfolio level: rebalance toward stable and growing segments. 
+By  focusing  on  segments  where  revenue  concentration  and  risk  overlap,  the  company  can 
+maximize the impact of its interventions. 
+The expected outcome is a stabilization of revenue, a reduction in churn, and a more resilient 
+and balanced portfolio over time. 
+ 
+33  
+5 Conclusion and Strategic Recommendations 
+5.1 Overall Findings 
+This  study  offers  a  comprehensive  analysis  of  revenue  dynamics,  customer  behaviour,  and 
+risk exposure within a logistics company using a data-driven approach. 
+The  findings  of  this  analysis  indicate  that  revenue  is  highly  concentrated,  with  20%  of 
+customers  generating  93.8%  of  total  revenue.  This  is  an  indication  of  structural  fragility,  as 
+performance depends on a limited number of high-value accounts. 
+The analysis further indicates that revenue decline is primarily due to a progressive 
+deterioration  among  existing  customers,  rather  than  complete  customer  loss.  A  significant 
+number  of  clients  are  classified  as  “fading,”  indicating  that  revenue  loss  is  gradual  and 
+potentially reversible. 
+Risk is also unevenly distributed, being concentrated in specific sectors, geographic regions, 
+and customer segments. Logistics and e-commerce sectors, as well as regions such as the 
+Northwest, combine high exposure with elevated churn. 
+Finally,  forecast  results  indicate  that  recent  performance  improvements  are  unlikely  to  be 
+sustained, highlighting the urgency of proactive intervention. 
+ 
+5.2 Key Insights 
+The findings of this study lead to several key strategic insights: 
+• Revenue  risk  with  a  limited  number  of  customers,  sectors,  and  regions  driving  both 
+performance and vulnerability; 
+• Churn is progressive, with most revenue loss occurring through declining activity rather 
+than abrupt exit; 
+• Performance is heterogeneous, requiring differentiated strategies across segments; 
+• Future performance is at risk, reinforcing the need for proactive, data-driven 
+management. 
+ 
+5.3 Strategic Recommendations 
+Based on the analysis, a set of targeted strategic recommendations is proposed. 
+5.3.1 Prioritise High-Value Client Recovery 
+Focus on high-value customers showing early signs of decline. 
+Key actions include identifying the top 100–200 declining accounts, assigning senior account 
+managers,  conduct  structured  reviews  to  diagnose  causes  of  decline  and  implementing 
+targeted recovery measures such as pricing adjustments and service improvements. 
+ 
+34  
+5.3.2 Implement an Early-Warning System 
+Establish  a  system  to  detect  early  signs  of  customer  deterioration  by  monitoring  revenue 
+changes  and  use  forecast  signals  to  trigger  intervention  on  accounts  that  are  flagged.  This 
+enables proactive intervention before full churn occurs. 
+ 
+5.3.3 Develop Sector-Specific Strategies 
+Differentiated strategies should be adopted across sectors. 
+For high-risk sectors, retention-focused actions are required (pricing flexibility, service 
+adaptation), whereas stable sectors should be prioritized for growth and expansion. 
+ 
+5.3.4 Apply Geographic Targeting 
+Regional  performance  difference  requires  differentiated  strategies.  Segment  regions  should 
+be classified into recover, defend, and monitor categories. For ‘recover region’s (high churn 
+and  high  loss), reviews should  be  conducted  at a  territory-level  and  local  sales  and  service 
+presence should be strengthened. For ‘defend regions’, stable regions with high revenue, 
+quality service should be prioritised and maintained, and unnecessary pricing pressure should 
+be  avoided.  Performance  should  be  tracked  (but  without heavy investment) for the ‘monitor 
+regions’. 
+ 
+5.3.5 Focus on High-Impact Geography x Sector Combinations 
+The most effective intervention occurs at the intersection of geography and sector.  Prioritize 
+intervention  at  the  intersection  of  geography  and  sector,  where  revenue  loss  is  most 
+concentrated. Assign clear ownership and implement targeted recovery plans. 
+ 
+5.3.6 Improve Data Quality Monitoring 
+Resolve data limitations, mainly the “Unknown” geographic category and implement monitoring 
+systems to track customer behaviour, sector performance and regional dynamics. 
+ 
+5.4 Managerial Implications 
+The  results  underscore  the  need  for  moving  towards  a  data-driven  management  approach. 
+Decision-making  should  focus  on  granular,  segment-level  insights  rather  than  aggregated 
+indicators, enabling more effective resource allocation, churn reduction and revenue 
+stabilisation. 
+ 
+35  
+5.5 Limitations and Future Work 
+This  analysis  showed  several  limitations,  such  as  reliance  on  historical  data,  incomplete 
+information and a forecast with uncertainties. Future research should be complemented with 
+external data, improve forecasting models and apply advance machine learning techniques to 
+improve predictive accuracy. 
+ 
+5.6 Final Remarks 
+As previously said, revenue decline is a result of identifiable structural and behavioural patterns. 
+Through a focus on high-impact customers, sectors, and regions, and a proactive and data-
+driven approach, the company can build resilience and sustain long-term performance. 
+ 
+References 
+• Christopher,  M.  (2016)  Logistics  and  Supply  Chain  Management.  5th  edn.  Harlow: 
+Pearson. 
+• Cowell, F.A. (2011) Measuring Inequality. 3rd edn. Oxford: Oxford University Press. 
+• Davenport, T.H. and Harris, J.G. (2007) Competing on Analytics: The New Science of 
+Winning. Boston: Harvard Business School Press. 
+• Fader, P.S. and Hardie, B.G.S. (2009) ‘Probability models for customer-base analysis’, 
+Journal of Interactive Marketing, 23(1), pp. 61–69. 
+• Henderson, B.D. (1970) The Product Portfolio. Boston: Boston Consulting Group. 
+• Hyndman, R.J. and Athanasopoulos, G. (2021) Forecasting: Principles and Practice. 
+3rd edn. Melbourne: OTexts. 
+• James, G., Witten, D., Hastie, T. and Tibshirani, R. (2021) An Introduction to Statistical 
+Learning. 2nd edn. New York: Springer. 
+• Koch, R. (2008) The 80/20 Principle: The Secret of Achieving More with Less. Updated 
+edn. London: Nicholas Brealey. 
+• Neslin, S.A., Gupta, S., Kamakura, W., Lu, J. and Mason, C.H. (2006) ‘Defection 
+detection:  Measuring  and  understanding  the  predictive  accuracy  of  customer  churn 
+models’, Journal of Marketing Research, 43(2), pp. 204–211. 
+• Verbeke, W., Dejaeger, K., Martens, D., Hur, J. and Baesens, B. (2012) ‘New insights 
+into  churn  prediction  in  the  telecommunication  sector:  A  profit-driven  data  mining 
+approach’, Journal of Operational Research, 218(1), pp. 211–229. 
+• Waller, M.A. and Fawcett, S.E. (2013) ‘Data science, predictive analytics, and big data: 
+A revolution that will transform supply chain design and management’, Journal of 
+Business Logistics, 34(2), pp. 77–84. 
+ 
+36  
+• Wedel, M. and Kamakura, W.A. (2000) Market Segmentation: Conceptual and 
+Methodological Foundations. 2nd edn. Boston: Kluwer Academic Publishers
+
+
+
+project 5- HOUSE RENT PREDICTION PROJECT: MACHINE LEARNING PIPELINE DOCUMENTATION
+
+DOCUMENT OVERVIEW AND CONTEXT
+Project Objective: Predict house rental prices across multiple cities in India using a regression-based machine learning pipeline.
+Target Variable: Rent (continuous numerical value representing monthly rent in INR).
+Features Included: BHK (number of bedrooms, hall, kitchen), Size (square footage), Floor, Area Type, Area Locality, City, Furnishing Status, Tenant Preferred, and Bathroom.
+Features Dropped: Posted On and Point of Contact. These features were removed because they do not carry predictive signal for the actual rental pricing and to prevent data leakage or overfitting.
+EXPLORATORY DATA ANALYSIS AND OUTLIER CLEANING
+Statistical Highlights: Initial data profiling showed a mean rent of approximately 34,993, with a minimum recorded value of 1,200 and an extreme maximum outlier of 3,500,000.
+Feature Correlation: The target variable Rent has moderate positive linear correlations with Bathroom (0.441) and Size (0.413).
+Outlier Removal Rules: First, properties where the size was small but the rent was disproportionately high (specifically, size under 3000 square feet with rent over 1,500,000) were removed. Second, properties where the size was extremely large but the rent was disproportionately low (specifically, size over 5000 square feet with rent under 500,000) were removed. Third, boxplot analysis of the Rent column highlighted extreme outliers. Properties with a monthly rent exceeding 650,000 were dropped to prevent distortion during model training. This systematic cleaning reduced the active dataset size from 4,746 records to 4,736 records.
+CATEGORICAL DATA ENCODING STRATEGIES To prepare non-numeric features for regression modeling, two distinct encoding strategies were applied:
+Mean and Target Encoding: Used for variables where the average rent acts as a representative category rank. This was applied to Area Type, Furnishing Status, and City. The process grouped the dataset by each category, computed the mean rent value for that category, rounded to two decimal places, and mapped it back to replace the original textual category. For instance, Mumbai's rent value mapping is significantly higher than Kolkata's.
+Frequency Encoding: Used for high-cardinality nominal variables. This was applied to Floor, Area Locality, and Tenant Preferred. The process calculated the raw count of occurrences for each unique category within the dataset and mapped it to prevent the dimensionality explosion that would occur with one-hot encoding.
+FEATURE SCALING AND COMPLEXITY OPTIMIZATION
+Standardization: Because features had different ranges (for example, categorical frequencies versus encoded target values), a StandardScaler was applied to center features around a zero mean and unit variance. This stabilizes gradient steps and prevents any single feature from dominating.
+Polynomial Feature Selection: Evaluated polynomial degrees from 1 to 9 using cross-validation with a split of 70 percent training and 30 percent testing. The process measured train and test Root Mean Squared Error (RMSE) at each degree. Based on the evaluation, a degree 3 polynomial was selected. Beyond degree 3, the test RMSE diverges significantly, indicating severe overfitting and a loss of generalization capability.
+MODEL TRAINING CONFIGURATION AND PERFORMANCE METRICS
+Model: Linear Regression configured with fit intercept set to False and positive coefficients forced to True, trained on 3rd-degree polynomial features.
+Dataset Partitioning: 70 percent Training subset and 30 percent Testing subset, using random state 42.
+Performance Evaluation Metrics: The Root Mean Squared Error (RMSE) is 21,837.96. The R-squared (R2) Score is 78.58 percent, demonstrating that approximately 78.58 percent of the variance in rental prices is explained by the engineered polynomial feature inputs. The RMSE to Average Rent Ratio is 65.79 percent (calculated as RMSE divided by Mean Rent multiplied by 100). Although the predictions are fairly robust, there is a moderate degree of variance indicating potential for further error reduction.
+MODEL EVALUATION AND RESIDUALS
+Residual Analysis: Evaluated by plotting prediction errors (actual rent minus predicted rent) against the actual rent values. The residuals plot is balanced around zero, showing stable predictions for typical rentals but displaying larger variances and under-prediction trends as rental values reach higher thresholds.
+Alignment Visualizations: Subplots aligning transformed features alongside model predictions show that the polynomial curves match the localized density of rent values effectively.
+Conclusion: The model is well-fitted, though predictions can be further refined. The model performs fairly and serves as a strong baseline that can be improved by testing advanced non-linear models or adjusting regularization parameters in future iterations.
+
