@@ -50,7 +50,7 @@ state = {}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Build the vector store once at startup (~150 chunks, a few seconds).
-    state["chain"] = await run_in_threadpool(build_celestin_rag, k=3, model="gpt-4o-mini")
+    state["chain"] = await run_in_threadpool(build_celestin_rag, k=5, model="gpt-4o-mini")
     yield
 
 
